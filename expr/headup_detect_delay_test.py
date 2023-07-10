@@ -14,11 +14,13 @@ if __name__ == "__main__":
     # expr_name = 'rack-pure-cloud-cpu-golden'
     # expr_name = 'tx2-pure-edge-gpu-golden'
     # expr_name = 'rack-pure-cloud-gpu-golden'
-    expr_name = 'tx2-pure-edge-cpu-golden'
+    # expr_name = 'tx2-pure-edge-cpu-golden'
+
+    expr_name = 'tx2-cloud-raw'
 
     # 提交请求
-    node_addr = "127.0.0.1:5001"
-    # node_addr = "172.27.152.177:5001"
+    # node_addr = "127.0.0.1:5001"
+    node_addr = "172.27.152.177:5001"
     # node_addr = "114.212.81.11:5001"
     query_body = {
         "node_addr": node_addr,
@@ -31,11 +33,11 @@ if __name__ == "__main__":
     }
 
     # query_addr = "192.168.56.102:5000"
-    # query_addr = "114.212.81.11:5000"
-    query_addr = "172.27.152.177:5000"
+    query_addr = "114.212.81.11:5000"
+    # query_addr = "172.27.152.177:5000"
     r = sess.post(url="http://{}/query/submit_query".format(query_addr),
                   json=query_body)
-    
+    print('resp:',r.json())
     resp = r.json()
     query_id = resp["query_id"]
     
@@ -61,6 +63,7 @@ if __name__ == "__main__":
                 time.sleep(1)
                 print("post one query request")
                 r = sess.get(url="http://{}/query/get_result/{}".format(query_addr, query_id))
+                print(f'response:{r.json()}')
                 if not r.json():
                     continue
                 resp = r.json()

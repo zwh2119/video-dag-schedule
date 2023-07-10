@@ -93,7 +93,7 @@ resource_info = {
         }
     },
     "cloud": {
-        "127.0.0.1": {
+        "114.212.81.11": {
             "face_detection": {
                 "n_process": 1,
                 "cpu_ratio": 0.8,
