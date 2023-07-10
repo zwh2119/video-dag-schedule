@@ -31,7 +31,7 @@ if __name__ == "__main__":
         "video_id": 1,
         "pipeline": ["face_detection", "face_alignment"],
         "user_constraint": {
-            "delay": 0.2,
+            "delay": 0.3,
             "accuracy": 0.8
         }
     }
