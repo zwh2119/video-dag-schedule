@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # expr_name = 'tx2-pure-edge-cpu-golden'
     # expr_name = 'desktop-only-kp1-ki02-kd015'
     # expr_name = 'output-scatter'
-    expr_name = 'gpu-gpu'
+    expr_name = 'tx2-cloud-raw'
 
     # 提交请求
     # node_addr = "127.0.0.1:5001"
