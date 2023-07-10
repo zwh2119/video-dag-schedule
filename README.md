@@ -1,4 +1,6 @@
-# video-dag-manager (no-render)
+# video-dag-schedule (auto-pid)
+
+分支修改概要：将PID的超参数改为通过深度强化学习自适应控制，并进行实验
 
 ## 1 大致结构
 
