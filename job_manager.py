@@ -458,7 +458,7 @@ def job_submit_job_cbk():
                            pipeline=para['pipeline'],
                            user_constraint=['user_constraint'])
     return flask.jsonify({"status": 0,
-                          "msg": "submitted to manager from api: node/submit_job",
+                          "msg": "submitted to manager from api: job/submit_job",
                           "job_uid": para["job_uid"]})
 
 # 接受调度计划更新
