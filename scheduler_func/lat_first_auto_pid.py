@@ -39,10 +39,25 @@ available_resolution = ["360p", "480p", "720p", "1080p"]
 
 lastTime = time.time()
 
+state_dim = 30
+action_dim = 3
+
+drl_agent_params = {
+    "state_dim": state_dim,  # number of state
+    "action_dim": action_dim,  # number of action
+    "gamma": 0.99,    # discounted factor
+    "hid_shape": (256, 256),  # hidden network size
+    "a_lr": 3e-4,  # learning rate of actor
+    "c_lr": 3e-4,  # learning rate of critic
+    "batch_size": 256,  # batch size
+    "alpha": 0.12,  # Entropy coefficient
+    "adaptive_alpha": True  # use adaptive alpha
+}
 
 class AutoPIDController:
     def __init__(self, min_value, max_value):
-        pass
+        agent = SAC_Agent(**drl_agent_params)
+        replay_buffer = RandomBuffer(state_dim, action_dim, True, max_size=int(1e6))
 
 
 class PIDController:
