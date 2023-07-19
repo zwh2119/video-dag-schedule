@@ -16,6 +16,8 @@ from werkzeug.serving import WSGIRequestHandler
 import field_codec_utils
 from logging_utils import root_logger
 import logging_utils
+import scheduler_func
+import scheduler_func.lat_first_auto_pid
 
 class Query():
 
@@ -354,7 +356,8 @@ def cloud_scheduler_loop(query_manager=None):
 
                 # conf, flow_mapping = scheduler_func.pid_mogai_scheduler.scheduler(
                 # conf, flow_mapping = scheduler_func.pid_content_aware_scheduler.scheduler(
-                conf, flow_mapping = scheduler_func.lat_first_pid.scheduler(
+                # conf, flow_mapping = scheduler_func.lat_first_pid.scheduler(
+                conf, flow_mapping = scheduler_func.lat_first_auto_pid.scheduler(
                     # flow=job.get_dag_flow(),
                     job_uid=query_id,
                     dag={"generator": "x", "flow": query.pipeline},
