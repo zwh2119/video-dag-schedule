@@ -356,8 +356,8 @@ def cloud_scheduler_loop(query_manager=None):
 
                 # conf, flow_mapping = scheduler_func.pid_mogai_scheduler.scheduler(
                 # conf, flow_mapping = scheduler_func.pid_content_aware_scheduler.scheduler(
-                # conf, flow_mapping = scheduler_func.lat_first_pid.scheduler(
-                conf, flow_mapping = scheduler_func.lat_first_auto_pid.scheduler(
+                conf, flow_mapping = scheduler_func.lat_first_pid.scheduler(
+                # conf, flow_mapping = scheduler_func.lat_first_auto_pid.scheduler(
                     # flow=job.get_dag_flow(),
                     job_uid=query_id,
                     dag={"generator": "x", "flow": query.pipeline},
