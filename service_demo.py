@@ -19,8 +19,8 @@ services_args = {
         'input_size': 480,
         'threshold': 0.7,
         'candidate_size': 1500,
-        'device': 'cpu'
-        # 'device': 'cuda:0'
+        # 'device': 'cpu'
+        'device': 'cuda:0'
     },
     "face_alignment": {
         # 'lite_version': False,
@@ -28,13 +28,13 @@ services_args = {
         'lite_version': True,
         'model_path': 'models/hopenet_lite_6MB.pkl',
         'batch_size': 1,
-        # 'device': 'cuda:0'
-        'device': 'cpu'
+        'device': 'cuda:0'
+        # 'device': 'cpu'
     },
     "car_detection": {
         'weights': 'yolov5s.pt',
-        # 'device': 'cuda:0'
-        'device': 'cpu'
+        'device': 'cuda:0'
+        # 'device': 'cpu'
     }
 }
 
