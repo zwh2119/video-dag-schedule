@@ -77,7 +77,22 @@ def fps_test():
         curr_video_frame_id = video_frame_id
         curr_conf_frame_id = conf_frame_id
 
+
+def video_frame_id_test():
+    cap = cv2.VideoCapture('http://127.0.0.1:5912/video')
+    while True:
+        frame_id = cap.get(cv2.CAP_PROP_POS_FRAMES)
+        ret, frame = cap.read()
+        if not ret:
+            print('camera error')
+            cap = cv2.VideoCapture('http://127.0.0.1:5912/video')
+            continue
+        print(frame_id)
+
+
 if __name__ == '__main__':
     # resolution_test()
 
-    fps_test()
+    # fps_test()
+
+    video_frame_id_test()

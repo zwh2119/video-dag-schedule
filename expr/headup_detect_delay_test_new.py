@@ -23,7 +23,7 @@ if __name__ == "__main__":
     # node_addr = "127.0.0.1:5001"
     # node_addr = "172.27.147.22:5001"
     # node_addr = "172.27.134.58:5001"
-    node_addr = "172.27.152.177:5001"
+    node_addr = "172.27.146.33:5001"
     # node_addr = "114.212.81.11:5001"
 
     query_body = {
@@ -46,6 +46,7 @@ if __name__ == "__main__":
                   json=query_body)
 
     resp = r.json()
+    print(resp)
     query_id = resp["query_id"]
 
     filename = datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S') + \

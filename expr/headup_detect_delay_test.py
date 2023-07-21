@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # node_addr = "114.212.81.11:5001"
     query_body = {
         "node_addr": node_addr,
-        "video_id": 1,
+        "video_id": 0,
         "pipeline": ["face_detection", "face_alignment"],
         "user_constraint": {
             "delay": 0.3,
