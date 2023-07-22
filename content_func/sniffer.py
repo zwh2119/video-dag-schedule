@@ -35,7 +35,8 @@ class Sniffer():
             for x_min, y_min, x_max, y_max in output_ctx['bbox']:
                 # TODO：需要依据分辨率转化
                 obj_size += (x_max - x_min) * (y_max - y_min)
-            obj_size /= len(output_ctx['bbox'])
+            if obj_size != 0:
+                obj_size /= len(output_ctx['bbox'])
 
             if len(self.runtime_pkg_list['obj_size']) > Sniffer.CONTENT_ELE_MAXN:
                 del self.runtime_pkg_list['obj_size'][0]
