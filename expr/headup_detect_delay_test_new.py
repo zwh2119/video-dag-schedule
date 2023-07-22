@@ -28,11 +28,11 @@ if __name__ == "__main__":
 
     query_body = {
         "node_addr": node_addr,
-        "video_id": 1,
+        "video_id": 0,
         "pipeline": ["face_detection", "face_alignment"],
         "user_constraint": {
             "delay": 0.3,
-            "accuracy": 0.8
+            "accuracy": 0.7
         }
     }
 

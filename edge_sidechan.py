@@ -27,7 +27,7 @@ def show_info():
     #return flask.Response(update_info(), mimetype='text/plain')
     return flask.render_template('index.html', info=info)
 
-# video_cap = cv2.VideoCapture('input/video/input.mov')
+# video_cap = cv2.VideoCapture('input/video/input.mp4')
 # video_cap = cv2.VideoCapture('1')
 def get_video_frame_result(jpeg_bytes_q):
     while True:

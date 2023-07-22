@@ -103,7 +103,7 @@ class Manager():
 
         # 本地视频流
         self.video_info_list = [
-            {"id": 0, "type": "student in classroom", "url": "input/input.mov"},
+            {"id": 0, "type": "student in classroom", "url": "input/input.mp4"},
             {"id": 1, "type": "people in meeting-room", "url": "input/input1.mp4"},
             {"id": 3, "type": "traffic flow outdoor", "url": "input/traffic-720p.mp4"}
         ]

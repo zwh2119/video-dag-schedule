@@ -64,7 +64,7 @@ edge$ python3 service_demo.py
 # 参数说明：
 #   --query_addr指明边端接入点（注册视频流信息、汇报结果、接收调度结果）
 # 注意：
-#   在项目根目录下新建input/目录存放数据视频————input.mov、input1.mp4、traffic-720p.mp4
+#   在项目根目录下新建input/目录存放数据视频————input.mp4、input1.mp4、traffic-720p.mp4
 edge$ python3 job_manager.py \
               --query_addr=114.212.81.11:5000 \
               --serv_cloud_addr=114.212.81.11:5500

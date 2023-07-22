@@ -87,7 +87,7 @@ if __name__ == '__main__':
     detector = FaceDetection(args)
 
     import cv2
-    video_cap = cv2.VideoCapture('input/input.mov')
+    video_cap = cv2.VideoCapture('input/input.mp4')
 
     ret, frame = video_cap.read()
 

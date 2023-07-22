@@ -7,7 +7,7 @@ import pickle
 import json
 
 def producer(q):
-    cap = cv2.VideoCapture("input.mov")
+    cap = cv2.VideoCapture("input.mp4")
     ret, frame = cap.read()
     frame = field_codec_utils.encode_image(frame)
     t = time.time()
@@ -25,7 +25,7 @@ def consumer(q):
 def http_delay_test():
     sess = requests.Session()
 
-    cap = cv2.VideoCapture("input.mov")
+    cap = cv2.VideoCapture("input.mp4")
     ret, frame = cap.read()
     frame = field_codec_utils.encode_image(frame)
 

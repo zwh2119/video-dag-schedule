@@ -79,13 +79,15 @@ def fps_test():
 
 
 def video_frame_id_test():
-    cap = cv2.VideoCapture('http://127.0.0.1:5912/video')
+    cap = cv2.VideoCapture("http://127.0.0.1:5912/video")
+    am_fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f'fps:{am_fps}')
     while True:
         frame_id = cap.get(cv2.CAP_PROP_POS_FRAMES)
         ret, frame = cap.read()
         if not ret:
             print('camera error')
-            cap = cv2.VideoCapture('http://127.0.0.1:5912/video')
+            cap = cv2.VideoCapture("http://127.0.0.1:5912/video")
             continue
         print(frame_id)
 

@@ -18,7 +18,7 @@ import field_codec_utils
 from logging_utils import root_logger
 import logging_utils
 
-from camera_simulation import start_video_stream
+from camera_simulation import video_info_list
 
 resolution_wh = {
     "360p": {
@@ -68,6 +68,7 @@ def sfg_get_next_init_task(
         ret, frame = video_cap.read()
         if not ret:
             root_logger.error('Camera input error，please check.')
+            time.sleep(1)
             continue
 
         # 视频流sidechan
@@ -130,11 +131,7 @@ class JobManager():
         self.sess = requests.Session()
 
         # 本地视频流
-        self.video_info_list = [
-            {"id": 0, "type": "student in classroom", "url": "127.0.0.1:5912/video"},
-            {"id": 1, "type": "people in meeting-room", "url": "input/input1.mp4"},
-            {"id": 3, "type": "traffic flow outdoor", "url": "input/traffic-720p.mp4"}
-        ]
+        self.video_info_list = video_info_list
 
         # 模拟数据库：记录下发到本地的job
         self.job_dict = dict()
@@ -351,48 +348,49 @@ class Job():
             frame_result = dict()
             plan_result = dict()
             plan_result['delay'] = dict()
-            for taskname in self.pipeline:
+            for task_name in self.pipeline:
 
-                root_logger.info("to forward taskname={}".format(taskname))
+                root_logger.info("to forward taskname={}".format(task_name))
 
                 input_ctx = output_ctx
                 root_logger.info("get input_ctx({}) of taskname({})".format(
                     input_ctx.keys(),
-                    taskname
+                    task_name
                 ))
 
+                # TODO 可能存在flow_mapping不存在的情况
                 # 根据flow_mapping，执行task（本地不保存结果）
                 root_logger.info("flow_mapping ={}".format(self.flow_mapping))
-                choice = self.flow_mapping[taskname]
-                root_logger.info("get choice of '{}' in flow_mapping, choose: {}".format(taskname, choice))
-                url = self.manager.get_chosen_service_url(taskname, choice)
+                choice = self.flow_mapping[task_name]
+                root_logger.info("get choice of '{}' in flow_mapping, choose: {}".format(task_name, choice))
+                url = self.manager.get_chosen_service_url(task_name, choice)
                 root_logger.info("get url {}".format(url))
 
                 st_time = time.time()
-                output_ctx = self.invoke_service(serv_url=url, taskname=taskname, input_ctx=input_ctx)
+                output_ctx = self.invoke_service(serv_url=url, taskname=task_name, input_ctx=input_ctx)
                 # 重试
                 while not output_ctx:
                     time.sleep(1)
-                    output_ctx = self.invoke_service(serv_url=url, taskname=taskname, input_ctx=input_ctx)
+                    output_ctx = self.invoke_service(serv_url=url, taskname=task_name, input_ctx=input_ctx)
                 ed_time = time.time()
 
                 # 运行时感知：应用无关
                 root_logger.info("got service result: {}, (delta_t={})".format(
                     output_ctx.keys(), ed_time - st_time))
-                plan_result['delay'][taskname] = ed_time - st_time
+                plan_result['delay'][task_name] = ed_time - st_time
                 # 运行时感知：应用相关
                 # wrapped_ctx = output_ctx.copy()
                 # wrapped_ctx['delay'] = (ed_time - st_time) / ((cam_frame_id - curr_cam_frame_id + 1) * 1.0)
                 # self.update_runtime(taskname=taskname, output_ctx=wrapped_ctx)
-                self.update_runtime(taskname=taskname, output_ctx=output_ctx)
+                self.update_runtime(taskname=task_name, output_ctx=output_ctx)
 
             n += 1
 
             total_frame_delay = 0
-            for taskname in plan_result['delay']:
-                plan_result['delay'][taskname] = \
-                    plan_result['delay'][taskname] / ((cam_frame_id - curr_cam_frame_id + 1) * 1.0)
-                total_frame_delay += plan_result['delay'][taskname]
+            for task_name in plan_result['delay']:
+                plan_result['delay'][task_name] = \
+                    plan_result['delay'][task_name] / ((cam_frame_id - curr_cam_frame_id + 1) * 1.0)
+                total_frame_delay += plan_result['delay'][task_name]
 
             self.update_runtime(taskname='end_pipe', output_ctx={"delay": total_frame_delay})
             output_ctx["frame_id"] = cam_frame_id
@@ -495,9 +493,6 @@ if __name__ == "__main__":
     parser.add_argument('--serv_cloud_addr', dest='serv_cloud_addr',
                         type=str, default='127.0.0.1:5500')
     args = parser.parse_args()
-
-    # 打开输入视频流
-    threading.Thread(target=start_video_stream, args=(), name='VideoStream', daemon=True).start()
 
     # 接受下发的query生成job、接收更新的调度策略
     threading.Thread(target=start_tracker_listener,
