@@ -16,8 +16,8 @@ from werkzeug.serving import WSGIRequestHandler
 import field_codec_utils
 from logging_utils import root_logger
 import logging_utils
-import scheduler_func
-import scheduler_func.lat_first_auto_pid
+#import scheduler_func
+#import scheduler_func.lat_first_auto_pid
 
 class Query():
 
