@@ -8,6 +8,7 @@
 2023.7.20:任务执行启用cuda
 2023.7.21:修改视频流输入逻辑，从ip地址读取（持续循环播放），方便兼容摄像头输入
 2023.7.22:修复情境感知部分(sniffer)没有判断人脸框数量是否为0导致的除零异常
+2023.8.7:全部代码改用yaml配置文件输入控制参数
 
 ### 系统仍存在的问题
 ·当前系统service执行中均以边缘端job_manager为核心，无论发往云端还是边缘端端服务请求，结果都会回到边缘端。需要减少不必要的云边通信
@@ -48,6 +49,8 @@ Job状态主要有三类
 
 **注意**：启动`job_manager.py`的节点，应该在项目根目录下新建input/目录并存放数据视频，如input.mov、input1.mp4、traffic-720p.mp4，否则无法读取视频
 
+控制参数需要修改**configure.yaml**文件
+
 伪分布式启动：
 
 ```shell
@@ -65,19 +68,14 @@ $ python3 job_manager.py 2>&1 | tee demo.log
 ```shell
 # 注意：修改service_demo.py中的"cloud"的ip为边端可访问的云端ip
 cloud$ python3 service_demo.py
-# --serv_cloud_addr指定请求计算服务的ip和端口
-cloud$ python3 query_manager.py \
-               --serv_cloud_addr=114.212.81.11:5500
+cloud$ python3 query_manager.py 
 
 # 注意：service_demo.py的修改与cloud的文件保持一致
 edge$ python3 service_demo.py
-# 参数说明：
-#   --query_addr指明边端接入点（注册视频流信息、汇报结果、接收调度结果）
+
 # 注意：
 #   在项目根目录下新建input/目录存放数据视频————input.mp4、input1.mp4、traffic-720p.mp4
-edge$ python3 job_manager.py \
-              --query_addr=114.212.81.11:5000 \
-              --serv_cloud_addr=114.212.81.11:5500
+edge$ python3 job_manager.py 
 ```
 
 ## 3 计算服务接口示例

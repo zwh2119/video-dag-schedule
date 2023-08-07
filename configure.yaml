@@ -1,0 +1,104 @@
+edge:
+  edge_ip: 172.27.148.105
+  port: 5000
+  video_ip: 127.0.0.1
+  service_port: 5500
+  sidechan_port: 5101
+  tracker_port: 5001
+
+cloud:
+  cloud_ip: 114.212.81.11
+  query_port: 5000
+  service_port: 5500
+  sidechan_port: 5100
+
+video:
+  - id: 0
+    type: "student in classroom"
+    path: 'input/input.mov'
+    port: 5900
+    state: false
+  - id: 1
+    type: "people in meeting-room"
+    path: 'input/meeting-room.mp4'
+    port: 5901
+    state: true
+  - id: 2
+    type: "traffic flow outdoor"
+    path: 'input/traffic-720p.mp4'
+    port: 5902
+    state: false
+
+service:
+    - name: 'face_detection'
+      description: ''
+      args:
+        net_type: 'mb_tiny_RFB_fd'
+        input_size: 480
+        threshold: 0.7
+        candidate_size: 1500
+        device: 'cuda:0'
+      call: 'FaceDetection'
+      import: 'services.headup_detect.face_detection'
+    - name: 'face_alignment'
+      description: ''
+      args:
+        lite_version: true
+        model_path: 'models/hopenet_lite_6MB.pkl'
+        batch_size: 1
+        device: 'cuda:0'
+      call: 'FaceAlignmentCNN'
+      import: 'services.headup_detect.face_alignment_cnn'
+    - name: 'car_detection'
+      description: ''
+      args:
+        weights: 'yolov5s.pt'
+        device: 'cuda:0'
+      call: 'CarDetection'
+      import: 'services.car_detection.car_detection'
+
+cluster:
+  127.0.0.1:
+    node_role: 'cloud'
+    n_cpu: 8
+    cpu_ratio: 2.5
+  127.0.0.2:
+    node_role: 'edge'
+    n_cpu: 4
+    cpu_ratio: 2.5
+
+resource:
+  host:
+    127.0.0.1:
+      face_detection:
+        n_process: 1
+        cpu_ratio: 0.8
+        mem_ratio: 0.4
+      face_alignment:
+        n_process: 1
+        cpu_ratio: 0.8
+        mem_ratio: 0.4
+  edge:
+    127.0.0.1:
+      face_detection:
+        n_process: 1
+        cpu_ratio: 0.8
+        mem_ratio: 0.4
+      face_alignment:
+        n_process: 1
+        cpu_ratio: 0.8
+        mem_ratio: 0.4
+  cloud:
+    114.212.81.11:
+      face_detection:
+        n_process: 1
+        cpu_ratio: 0.8
+        mem_ratio: 0.4
+      face_alignment:
+        n_process: 1
+        cpu_ratio: 0.8
+        mem_ratio: 0.4
+
+
+
+

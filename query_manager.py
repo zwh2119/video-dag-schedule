@@ -15,9 +15,13 @@ from werkzeug.serving import WSGIRequestHandler
 
 import field_codec_utils
 from logging_utils import root_logger
+import yaml_utils
 import logging_utils
 import scheduler_func
-# import scheduler_func.lat_first_auto_pid
+
+
+configs = yaml_utils.read_yaml('configure.yaml')
+cloud_configs = configs['cloud']
 
 class Query():
 
@@ -231,7 +235,8 @@ def user_submit_query_cbk():
     
     # TODO：更新sidechan信息
     # cloud_ip = manager.get_cloud_addr().split(":")[0]
-    cloud_ip = "127.0.0.1"
+    # cloud_ip = "127.0.0.1"
+    cloud_ip = cloud_configs['cloud_ip']
     r_sidechan = query_manager.sess.post(url="http://{}:{}/user/update_node_addr".format(cloud_ip, 5100),
                                    json={"job_uid": job_uid,
                                          "node_addr": node_addr.split(":")[0] + ":5101"})
@@ -379,25 +384,19 @@ def cloud_scheduler_loop(query_manager=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--query_port', dest='query_port',
-                        type=int, default=5000)
-    parser.add_argument('--serv_cloud_addr', dest='serv_cloud_addr',
-                        type=str, default='127.0.0.1:5500')
-    args = parser.parse_args()
 
     threading.Thread(target=start_query_listener,
-                     args=(args.query_port,),
+                     args=(cloud_configs['query_port'],),
                      name="QueryFlask",
                      daemon=True).start()
     
     time.sleep(1)
 
-    query_manager.set_service_cloud_addr(addr=args.serv_cloud_addr)
+    query_manager.set_service_cloud_addr(addr=f'{cloud_configs["cloud_ip"]}:{cloud_configs["service_port"]}')
 
     # 启动视频流sidechan（由云端转发请求到边端）
     import cloud_sidechan
-    video_serv_inter_port = 5100
+    video_serv_inter_port = cloud_configs['sidechan_port']
     mp.Process(target=cloud_sidechan.init_and_start_video_proc,
                args=(video_serv_inter_port,)).start()
     time.sleep(1)

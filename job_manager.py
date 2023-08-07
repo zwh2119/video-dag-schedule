@@ -18,7 +18,15 @@ import field_codec_utils
 from logging_utils import root_logger
 import logging_utils
 
-from camera_simulation import video_info_list
+import yaml_utils
+
+configs = yaml_utils.read_yaml('configure.yaml')
+cloud_config = configs['cloud']
+edge_config = configs['edge']
+video_config = configs['video']
+
+
+
 
 resolution_wh = {
     "360p": {
@@ -131,7 +139,7 @@ class JobManager():
         self.sess = requests.Session()
 
         # 本地视频流
-        self.video_info_list = video_info_list
+        self.video_info_list = video_config
 
         # 模拟数据库：记录下发到本地的job
         self.job_dict = dict()
@@ -157,9 +165,9 @@ class JobManager():
         return None
 
     # 获取计算服务url
-    def get_chosen_service_url(self, taskname, choice):
+    def get_chosen_service_url(self, task_name, choice):
         port = self.service_cloud_addr.split(':')[1]
-        url = "http://{}:{}/execute_task/{}".format(choice["node_ip"], port, taskname)
+        url = "http://{}:{}/execute_task/{}".format(choice["node_ip"], port, task_name)
         return url
 
     # 更新调度计划：与通信进程竞争self.job_dict[job.get_job_uid()]，修改job状态
@@ -327,7 +335,9 @@ class Job():
         assert isinstance(self.manager, JobManager)
 
         # 0、初始化数据流来源（TODO：从缓存区读取）
-        cap = cv2.VideoCapture(self.manager.get_video_info_by_id(self.video_id)['url'])
+        video_port = self.manager.get_video_info_by_id(self.video_id)['port']
+        video_ip = edge_config['video_ip']
+        cap = cv2.VideoCapture(f'http://{video_ip}:{video_port}/video')
 
         n = 0
         curr_cam_frame_id = 0
@@ -485,34 +495,26 @@ def start_tracker_listener(serv_port=5001):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--query_addr', dest='query_addr',
-                        type=str, default='127.0.0.1:5000')
-    parser.add_argument('--tracker_port', dest='tracker_port',
-                        type=int, default=5001)
-    parser.add_argument('--serv_cloud_addr', dest='serv_cloud_addr',
-                        type=str, default='127.0.0.1:5500')
-    args = parser.parse_args()
 
     # 接受下发的query生成job、接收更新的调度策略
     threading.Thread(target=start_tracker_listener,
-                     args=(args.tracker_port,),
+                     args=(edge_config['tracker_port'],),
                      name="TrackerFlask",
                      daemon=True).start()
 
     time.sleep(1)
 
     # 接入query manger
-    job_manager.join_query_controller(query_addr=args.query_addr,
-                                      tracker_port=args.tracker_port)
+    job_manager.join_query_controller(query_addr=f'{cloud_config["cloud_ip"]}:{cloud_config["query_port"]}',
+                                      tracker_port=edge_config['tracker_port'])
     root_logger.info("joined to query controller")
 
-    job_manager.set_service_cloud_addr(addr=args.serv_cloud_addr)
+    job_manager.set_service_cloud_addr(addr=f'{cloud_config["cloud_ip"]}:{cloud_config["service_port"]}')
 
     # 启动视频流sidechan（由云端转发请求到边端）
     import edge_sidechan
 
-    video_serv_inter_port = 5101
+    video_serv_inter_port = edge_config['sidechan_port']
     mp.Process(target=edge_sidechan.init_and_start_video_proc,
                args=(video_q, video_serv_inter_port,)).start()
     time.sleep(1)
