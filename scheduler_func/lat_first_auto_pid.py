@@ -9,16 +9,15 @@
 
 '''
 
-import numpy as np
-import torch
-import gym
-from sac_agent import SAC_Agent
-from ReplayBuffer import RandomBuffer, device
-from torch.utils.tensorboard import SummaryWriter
-from datetime import datetime
-import os, shutil
-import argparse
-from Adapter import *
+# import numpy as np
+# import torch
+# from .sac_agent import SAC_Agent
+# from .ReplayBuffer import RandomBuffer, device
+# from torch.utils.tensorboard import SummaryWriter
+# from datetime import datetime
+# import os, shutil
+# import argparse
+# from Adapter import *
 
 
 from logging_utils import root_logger
@@ -54,29 +53,33 @@ drl_agent_params = {
     "adaptive_alpha": True  # use adaptive alpha
 }
 
+
 class AutoPIDController:
     def __init__(self, min_value, max_value):
-        agent = SAC_Agent(**drl_agent_params)
-        replay_buffer = RandomBuffer(state_dim, action_dim, True, max_size=int(1e6))
+        # self.agent = SAC_Agent(**drl_agent_params)
+        # self.replay_buffer = RandomBuffer(state_dim, action_dim, True, max_size=int(1e6))
 
+        self.Kp = 1
+        self.Ki = 0.1
+        self.Kd = 0.01
 
-class PIDController:
-    def __init__(self, Kp, Ki, Kd, setpoint, dt):
-        self.Kp = Kp
-        self.Ki = Ki
-        self.Kd = Kd
-        self.setpoint = setpoint
-        self.dt = dt
+        self.min_value = min_value
+        self.max_value = max_value
+
         self.previous_error = 0
         self.integral = 0
 
-    def update(self, current_value):
-        error = self.setpoint - current_value
-        self.integral += error * self.dt
-        derivative = (error - self.previous_error) / self.dt
+    def update(self, current_value, setpoint, dt):
+        error = setpoint - current_value
+        self.integral += error * dt
+        derivative = (error - self.previous_error) / dt
         output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
         self.previous_error = error
-        print(output)
+        # print(output)
+        if output < self.min_value:
+            output = self.min_value
+        elif output > self.max_value:
+            output = self.max_value
         return output
 
 
@@ -328,11 +331,6 @@ def adjust_parameters(output=0, job_uid=None,
     fps_index = available_fps.index(next_video_conf["fps"])
 
     err_level = round(output)
-    if err_level < -3:
-        err_level = -3
-    elif err_level > 3:
-        err_level = 3
-
     tune_msg = None
 
     # TODO：参照对应的边端sniffer解析运行时情境
@@ -443,8 +441,11 @@ def scheduler(
         resource_info=None,
         runtime_info=None,
         user_constraint=None,
+        pid_controller=None
 ):
     assert job_uid, "should provide job_uid for scheduler to get prev_plan of job"
+
+    assert pid_controller, 'PID Controller is None!'
 
     root_logger.info(
         "scheduling for job_uid-{}, runtime_info=\n{}".format(job_uid, runtime_info))
@@ -477,17 +478,15 @@ def scheduler(
     delay_lb = delay_ub
 
     # set pidController param
-    Kp, Ki, Kd = 1, 0.1, 0.01
     setpoint = delay_ub
     dt = time.time() - lastTime
-    pidControl = PIDController(Kp, Ki, Kd, setpoint, dt)
 
     # TODO：参照对应的边端sniffer解析运行时情境
     print('---- runtime_info in the past time slot ----')
     print('runtime_info = {}'.format(runtime_info))
 
     avg_delay = runtime_info['delay']
-    output = pidControl.update(avg_delay)
+    output = pid_controller.update(avg_delay, setpoint, dt)
 
     # adjust parameters
 

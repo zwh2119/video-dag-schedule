@@ -5,7 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 import math
-from ReplayBuffer import device
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def build_net(layer_shape, activation, output_activation):

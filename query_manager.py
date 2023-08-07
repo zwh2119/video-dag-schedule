@@ -326,6 +326,7 @@ def cloud_scheduler_loop(query_manager=None):
     # import scheduler_func.pid_mogai_scheduler
     # import scheduler_func.pid_content_aware_scheduler
     import scheduler_func.lat_first_pid
+    import scheduler_func.lat_first_auto_pid
 
 
     while True:
@@ -359,17 +360,20 @@ def cloud_scheduler_loop(query_manager=None):
                 if runtime_info:
                     query.set_runtime(runtime_info=runtime_info)
 
+                pid_controller = scheduler_func.lat_first_auto_pid.AutoPIDController(-3, 3)
+
                 # conf, flow_mapping = scheduler_func.pid_mogai_scheduler.scheduler(
                 # conf, flow_mapping = scheduler_func.pid_content_aware_scheduler.scheduler(
-                conf, flow_mapping = scheduler_func.lat_first_pid.scheduler(
-                # conf, flow_mapping = scheduler_func.lat_first_auto_pid.scheduler(
+                # conf, flow_mapping = scheduler_func.lat_first_pid.scheduler(
+                conf, flow_mapping = scheduler_func.lat_first_auto_pid.scheduler(
                     # flow=job.get_dag_flow(),
                     job_uid=query_id,
                     dag={"generator": "x", "flow": query.pipeline},
                     resource_info=resource_info,
                     runtime_info=runtime_info,
                     # last_plan_res=last_plan_result,
-                    user_constraint=user_constraint
+                    user_constraint=user_constraint,
+                    pid_controller=pid_controller
                 )
 
                 # 更新查询策略（以便用户从云端获取）
