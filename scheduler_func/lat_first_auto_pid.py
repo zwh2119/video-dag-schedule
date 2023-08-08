@@ -9,15 +9,15 @@
 
 '''
 
-# import numpy as np
-# import torch
-# from .sac_agent import SAC_Agent
-# from .ReplayBuffer import RandomBuffer, device
-# from torch.utils.tensorboard import SummaryWriter
-# from datetime import datetime
-# import os, shutil
-# import argparse
-# from Adapter import *
+import numpy as np
+import torch
+from .sac_agent import SAC_Agent
+from .ReplayBuffer import RandomBuffer, device
+from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
+import os, shutil
+import argparse
+from .Adapter import *
 
 
 from logging_utils import root_logger
@@ -56,8 +56,8 @@ drl_agent_params = {
 
 class AutoPIDController:
     def __init__(self, min_value, max_value):
-        # self.agent = SAC_Agent(**drl_agent_params)
-        # self.replay_buffer = RandomBuffer(state_dim, action_dim, True, max_size=int(1e6))
+        self.agent = SAC_Agent(**drl_agent_params)
+        self.replay_buffer = RandomBuffer(state_dim, action_dim, True, max_size=int(1e6))
 
         self.Kp = 1
         self.Ki = 0.1

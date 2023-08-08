@@ -18,17 +18,19 @@ lastTime = time.time()
 
 
 class PIDController:
-    def __init__(self, Kp, Ki, Kd):
+    def __init__(self, Kp, Ki, Kd, setpoint, dt):
         self.Kp = Kp
         self.Ki = Ki
         self.Kd = Kd
+        self.setpoint = setpoint
+        self.dt = dt
         self.previous_error = 0
         self.integral = 0
 
-    def update(self, current_value, setpoint, dt):
-        error = setpoint - current_value
-        self.integral += error * dt
-        derivative = (error - self.previous_error) / dt
+    def update(self, current_value):
+        error = self.setpoint - current_value
+        self.integral += error * self.dt
+        derivative = (error - self.previous_error) / self.dt
         output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
         self.previous_error = error
         print(output)
