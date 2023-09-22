@@ -9,22 +9,13 @@
 
 '''
 
-import numpy as np
-import torch
-from .sac_agent import SAC_Agent
-from .ReplayBuffer import RandomBuffer, device
-from torch.utils.tensorboard import SummaryWriter
-from datetime import datetime
-import os, shutil
-import argparse
-from .Adapter import *
-
-
 from logging_utils import root_logger
 import pandas as pd
 import os
 
 import time
+import yaml_utils
+import requests
 
 prev_video_conf = dict()
 
@@ -36,32 +27,19 @@ available_fps = [1, 5, 10, 20, 30]
 available_resolution = ["360p", "480p", "720p", "1080p"]
 # available_npxpf = [480*360, 858*480, 1280*720, 1920*1080]
 
+configs = yaml_utils.read_yaml('configure.yaml')
+pid_config = configs['pid']
+drl_config = configs['drl']
+
 lastTime = time.time()
-
-state_dim = 30
-action_dim = 3
-
-drl_agent_params = {
-    "state_dim": state_dim,  # number of state
-    "action_dim": action_dim,  # number of action
-    "gamma": 0.99,    # discounted factor
-    "hid_shape": (256, 256),  # hidden network size
-    "a_lr": 3e-4,  # learning rate of actor
-    "c_lr": 3e-4,  # learning rate of critic
-    "batch_size": 256,  # batch size
-    "alpha": 0.12,  # Entropy coefficient
-    "adaptive_alpha": True  # use adaptive alpha
-}
 
 
 class AutoPIDController:
     def __init__(self, min_value, max_value):
-        self.agent = SAC_Agent(**drl_agent_params)
-        self.replay_buffer = RandomBuffer(state_dim, action_dim, True, max_size=int(1e6))
 
-        self.Kp = 1
-        self.Ki = 0.1
-        self.Kd = 0.01
+        self.Kp = pid_config['kp']
+        self.Ki = pid_config['ki']
+        self.Kd = pid_config['kd']
 
         self.min_value = min_value
         self.max_value = max_value
@@ -69,7 +47,27 @@ class AutoPIDController:
         self.previous_error = 0
         self.integral = 0
 
+    def get_pid_parameter(self):
+        sess = requests.Session()
+        r = sess.get(url=f'http://127.0.0.1:{drl_config["port"]}/drl/parameter')
+        parameter = r.json()
+        self.Kp = parameter['kp']
+        self.Ki = parameter['ki']
+        self.Kd = parameter['kd']
+
+    def check_pid_parameter(self):
+        print(f'kp:{self.Kp}, ki:{self.Ki}, kd:{self.Kd}')
+
+    def reset_pid_parameter(self):
+        self.Kp = pid_config['kp']
+        self.Ki = pid_config['ki']
+        self.Kd = pid_config['kd']
+
     def update(self, current_value, setpoint, dt):
+
+        # 尝试更新pid参数
+        self.get_pid_parameter()
+
         error = setpoint - current_value
         self.integral += error * dt
         derivative = (error - self.previous_error) / dt

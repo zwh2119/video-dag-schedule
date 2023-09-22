@@ -1,5 +1,5 @@
 edge:
-  edge_ip: 172.27.148.105
+  edge_ip: 114.212.81.219
   port: 5000
   video_ip: 127.0.0.1
   service_port: 5500
@@ -30,32 +30,32 @@ video:
     state: false
 
 service:
-    - name: 'face_detection'
-      description: ''
-      args:
-        net_type: 'mb_tiny_RFB_fd'
-        input_size: 480
-        threshold: 0.7
-        candidate_size: 1500
-        device: 'cuda:0'
-      call: 'FaceDetection'
-      import: 'services.headup_detect.face_detection'
-    - name: 'face_alignment'
-      description: ''
-      args:
-        lite_version: true
-        model_path: 'models/hopenet_lite_6MB.pkl'
-        batch_size: 1
-        device: 'cuda:0'
-      call: 'FaceAlignmentCNN'
-      import: 'services.headup_detect.face_alignment_cnn'
-    - name: 'car_detection'
-      description: ''
-      args:
-        weights: 'yolov5s.pt'
-        device: 'cuda:0'
-      call: 'CarDetection'
-      import: 'services.car_detection.car_detection'
+  - name: 'face_detection'
+    description: ''
+    args:
+      net_type: 'mb_tiny_RFB_fd'
+      input_size: 480
+      threshold: 0.7
+      candidate_size: 1500
+      device: 'cuda:0'
+    call: 'FaceDetection'
+    import: 'services.headup_detect.face_detection'
+  - name: 'face_alignment'
+    description: ''
+    args:
+      lite_version: true
+      model_path: 'models/hopenet_lite_6MB.pkl'
+      batch_size: 1
+      device: 'cuda:0'
+    call: 'FaceAlignmentCNN'
+    import: 'services.headup_detect.face_alignment_cnn'
+  - name: 'car_detection'
+    description: ''
+    args:
+      weights: 'yolov5s.pt'
+      device: 'cuda:0'
+    call: 'CarDetection'
+    import: 'services.car_detection.car_detection'
 
 cluster:
   127.0.0.1:
@@ -98,6 +98,26 @@ resource:
         n_process: 1
         cpu_ratio: 0.8
         mem_ratio: 0.4
+
+pid:
+  kp: 1
+  ki: 0.1
+  kd: 0.01
+
+drl:
+  agent:
+    state_dim: 30
+    action_dim: 3
+    gamma: 0.99
+    hid_shape: (256, 256)
+    a_lr: 3e-4
+    c_lr: 3e-4
+    batch_size: 256
+    alpha: 0.12
+    adaptive_alpha: true
+  train:
+    epoch:
+  port: 6666
 
 
 
