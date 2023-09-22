@@ -19,6 +19,8 @@ if __name__ == "__main__":
     # expr_name = 'output-scatter'
     expr_name = 'tx2-cloud-raw'
 
+    test_frame_num = 10000
+
     # 提交请求
     # node_addr = "127.0.0.1:5001"
     # node_addr = "172.27.147.22:5001"
@@ -28,7 +30,7 @@ if __name__ == "__main__":
 
     query_body = {
         "node_addr": node_addr,
-        "video_id": 1,
+        "video_id": 0,
         "pipeline": ["face_detection", "face_alignment"],
         "user_constraint": {
             "delay": 0.3,
@@ -118,6 +120,9 @@ if __name__ == "__main__":
 
                 print("written one query response, len written_n_loop={}".format(
                     len(written_n_loop.keys())))
+
+                if len(written_n_loop.keys()) > test_frame_num:
+                    break
 
             except Exception as e:
                 if r:

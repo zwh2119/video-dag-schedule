@@ -26,8 +26,6 @@ edge_config = configs['edge']
 video_config = configs['video']
 
 
-
-
 resolution_wh = {
     "360p": {
         "w": 480,

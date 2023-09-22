@@ -5,7 +5,7 @@ def read_yaml(yaml_file):
     '''读取yaml文件'''
     with open(yaml_file, 'r', encoding="utf-8") as f:
         values = yaml.load(f, Loader=yaml.FullLoader)
-    print(values)
+    # print(values)
     return values
 
 

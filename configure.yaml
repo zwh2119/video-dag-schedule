@@ -15,14 +15,14 @@ cloud:
 video:
   - id: 0
     type: "student in classroom"
-    path: 'input/input.mov'
+    path: 'input/input.mp4'
     port: 5900
-    state: false
+    state: true
   - id: 1
     type: "people in meeting-room"
     path: 'input/meeting-room.mp4'
     port: 5901
-    state: true
+    state: false
   - id: 2
     type: "traffic flow outdoor"
     path: 'input/traffic-720p.mp4'
