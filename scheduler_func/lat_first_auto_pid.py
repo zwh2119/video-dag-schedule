@@ -486,6 +486,14 @@ def scheduler(
     avg_delay = runtime_info['delay']
     output = pid_controller.update(avg_delay, setpoint, dt)
 
+    sess = requests.Session()
+    sess.post(url=f'http://127.0.0.1:{drl_config["port"]}/drl/state', json={
+        'pid_output': output,
+        'resource_info': resource_info,
+        'runtime_info': runtime_info,
+        'user_constraint': user_constraint
+    })
+
     # adjust parameters
 
     return adjust_parameters(output, job_uid=job_uid,

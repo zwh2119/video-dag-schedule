@@ -118,6 +118,8 @@ drl:
   train:
     epoch:
   port: 6666
+  mode: 'train'
+  device: 'cuda:0'
 
 
 
