@@ -29,6 +29,8 @@ class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, hid_shape, h_acti=nn.ReLU, o_acti=nn.ReLU):
         super(Actor, self).__init__()
 
+        self.conv_net = build_conv1d_net()
+
         layers = [state_dim] + list(hid_shape)
         self.a_net = build_net(layers, h_acti, o_acti)
         self.mu_layer = nn.Linear(layers[-1], action_dim)
@@ -39,7 +41,8 @@ class Actor(nn.Module):
 
     def forward(self, state, deterministic=False, with_logprob=True):
         '''Network with Enforcing Action Bounds'''
-        net_out = self.a_net(state)
+        state_out = self.conv_net(state)
+        net_out = self.a_net(state_out)
         mu = self.mu_layer(net_out)
         log_std = self.log_std_layer(net_out)
         log_std = torch.clamp(log_std, self.LOG_STD_MIN, self.LOG_STD_MAX)  # 总感觉这里clamp不利于学习
