@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 import math
 
+
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -18,18 +19,17 @@ def build_net(layer_shape, activation, output_activation):
     return nn.Sequential(*layers)
 
 
-def build_conv1d_net(layer_shape, activation):
-    layers = []
-    act = activation
-    layers.append(act)
+def build_conv1d_net(input_shape, output_shape, kernel_size):
+    layers = [nn.Conv1d(in_channels=input_shape,
+                        out_channels=output_shape,
+                        kernel_size=kernel_size), nn.ReLU()]
+
     return nn.Sequential(*layers)
 
 
 class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, hid_shape, h_acti=nn.ReLU, o_acti=nn.ReLU):
         super(Actor, self).__init__()
-
-        self.conv_net = build_conv1d_net()
 
         layers = [state_dim] + list(hid_shape)
         self.a_net = build_net(layers, h_acti, o_acti)
@@ -41,8 +41,7 @@ class Actor(nn.Module):
 
     def forward(self, state, deterministic=False, with_logprob=True):
         '''Network with Enforcing Action Bounds'''
-        state_out = self.conv_net(state)
-        net_out = self.a_net(state_out)
+        net_out = self.a_net(state)
         mu = self.mu_layer(net_out)
         log_std = self.log_std_layer(net_out)
         log_std = torch.clamp(log_std, self.LOG_STD_MIN, self.LOG_STD_MAX)  # 总感觉这里clamp不利于学习
@@ -84,8 +83,13 @@ class Q_Critic(nn.Module):
 
 
 class Actor_Conv(nn.Module):
-    def __init__(self, state_dim, action_dim, hid_shape, h_acti=nn.ReLU, o_acti=nn.ReLU):
-        super(Actor, self).__init__()
+    def __init__(self, state_dim, action_dim, hid_shape, conv_kernel_size,
+                 conv_out_dim, h_acti=nn.ReLU, o_acti=nn.ReLU):
+        super(Actor_Conv, self).__init__()
+
+        self.conv_net = []
+        for i in range(state_dim[1]):
+            self.conv_net.append(build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size))
 
         layers = [state_dim] + list(hid_shape)
         self.a_net = build_net(layers, h_acti, o_acti)
@@ -97,7 +101,14 @@ class Actor_Conv(nn.Module):
 
     def forward(self, state, deterministic=False, with_logprob=True):
         '''Network with Enforcing Action Bounds'''
-        net_out = self.a_net(state)
+        state_out = torch.tensor([])
+        for i in range(len(self.conv_net)):
+            if i == 0:
+                state_out = self.conv_net[i](state[i]).view(1, -1)
+            else:
+                state_out = torch.hstack((state_out, self.conv_net[i](state[i]).view(1, -1)))
+
+        net_out = self.a_net(state_out)
         mu = self.mu_layer(net_out)
         log_std = self.log_std_layer(net_out)
         log_std = torch.clamp(log_std, self.LOG_STD_MIN, self.LOG_STD_MAX)  # 总感觉这里clamp不利于学习
@@ -124,15 +135,28 @@ class Actor_Conv(nn.Module):
 
 
 class Q_Critic_Conv(nn.Module):
-    def __init__(self, state_dim, action_dim, hid_shape):
-        super(Q_Critic, self).__init__()
+    def __init__(self, state_dim, action_dim, hid_shape, conv_kernel_size,
+                 conv_out_dim):
+        super(Q_Critic_Conv, self).__init__()
+
+        self.conv_net = []
+        for i in range(state_dim[1]):
+            self.conv_net.append(build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size))
+
         layers = [state_dim + action_dim] + list(hid_shape) + [1]
 
         self.Q_1 = build_net(layers, nn.ReLU, nn.Identity)
         self.Q_2 = build_net(layers, nn.ReLU, nn.Identity)
 
     def forward(self, state, action):
-        sa = torch.cat([state, action], 1)
+        state_out = torch.tensor([])
+        for i in range(len(self.conv_net)):
+            if i == 0:
+                state_out = self.conv_net[i](state[i]).view(1, -1)
+            else:
+                state_out = torch.hstack((state_out, self.conv_net[i](state[i]).view(1, -1)))
+
+        sa = torch.cat([state_out, action], 1)
         q1 = self.Q_1(sa)
         q2 = self.Q_2(sa)
         return q1, q2
@@ -252,6 +276,8 @@ class SAC_Conv_Agent(object):
             action_dim,
             gamma=0.99,
             hid_shape=(256, 256),
+            conv_kernel_size=4,
+            conv_out_dim=128,
             a_lr=3e-4,
             c_lr=3e-4,
             tau=0.005,
@@ -261,10 +287,12 @@ class SAC_Conv_Agent(object):
             device='cpu'
     ):
 
-        self.actor = Actor_Conv(state_dim, action_dim, hid_shape).to(device)
+        self.actor = Actor_Conv(state_dim, action_dim, hid_shape, conv_kernel_size,
+                                conv_out_dim).to(device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=a_lr)
 
-        self.q_critic = Q_Critic_Conv(state_dim, action_dim, hid_shape).to(device)
+        self.q_critic = Q_Critic_Conv(state_dim, action_dim, hid_shape, conv_kernel_size,
+                                      conv_out_dim).to(device)
         self.q_critic_optimizer = torch.optim.Adam(self.q_critic.parameters(), lr=c_lr)
         self.q_critic_target = copy.deepcopy(self.q_critic)
         # Freeze target networks with respect to optimizers (only update via polyak averaging)

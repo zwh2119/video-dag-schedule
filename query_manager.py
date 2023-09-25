@@ -328,6 +328,7 @@ def cloud_scheduler_loop(query_manager=None):
     import scheduler_func.lat_first_pid
     import scheduler_func.lat_first_auto_pid
 
+    pid_controller = scheduler_func.lat_first_auto_pid.AutoPIDController(-3, 3)
 
     while True:
         # 每5s调度一次
@@ -356,11 +357,14 @@ def cloud_scheduler_loop(query_manager=None):
                     url="http://{}/job/get_runtime/{}".format(node_addr, query_id)
                 )
                 runtime_info = r.json()
+
+                if 'delay' not in runtime_info:
+                    continue
+
                 # 更新查询的运行时情境（以便用户从云端获取）
                 if runtime_info:
                     query.set_runtime(runtime_info=runtime_info)
 
-                pid_controller = scheduler_func.lat_first_auto_pid.AutoPIDController(-3, 3)
 
                 # conf, flow_mapping = scheduler_func.pid_mogai_scheduler.scheduler(
                 # conf, flow_mapping = scheduler_func.pid_content_aware_scheduler.scheduler(
