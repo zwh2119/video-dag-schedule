@@ -208,6 +208,7 @@ class JobManager():
         n = 0
         for jid, job in self.job_dict.items():
             assert isinstance(job, Job)
+            print(job.get_state())
             if job.get_state() == Job.JOB_STATE_READY:
                 job.start_worker_loop()
                 root_logger.info("start to run job-{} in new thread".format(job.get_job_uid()))

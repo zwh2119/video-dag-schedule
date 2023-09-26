@@ -91,7 +91,7 @@ class Actor_Conv(nn.Module):
         for i in range(state_dim[1]):
             self.conv_net.append(build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size))
 
-        layers = [state_dim] + list(hid_shape)
+        layers = [conv_out_dim] + list(hid_shape)
         self.a_net = build_net(layers, h_acti, o_acti)
         self.mu_layer = nn.Linear(layers[-1], action_dim)
         self.log_std_layer = nn.Linear(layers[-1], action_dim)
@@ -104,7 +104,7 @@ class Actor_Conv(nn.Module):
         state_out = torch.tensor([])
         for i in range(len(self.conv_net)):
             if i == 0:
-                state_out = self.conv_net[i](state[i]).view(1, -1)
+                state_out = self.conv_net[i](state[i].view(1, 1, -1)).view(1, -1)
             else:
                 state_out = torch.hstack((state_out, self.conv_net[i](state[i]).view(1, -1)))
 
@@ -143,7 +143,7 @@ class Q_Critic_Conv(nn.Module):
         for i in range(state_dim[1]):
             self.conv_net.append(build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size))
 
-        layers = [state_dim + action_dim] + list(hid_shape) + [1]
+        layers = [conv_out_dim + action_dim] + list(hid_shape) + [1]
 
         self.Q_1 = build_net(layers, nn.ReLU, nn.Identity)
         self.Q_2 = build_net(layers, nn.ReLU, nn.Identity)
@@ -318,7 +318,7 @@ class SAC_Conv_Agent(object):
     def select_action(self, state, deterministic, with_logprob=False):
         # only used when interact with the env
         with torch.no_grad():
-            state = torch.FloatTensor(state.reshape(1, -1)).to(self.device)
+            state = torch.FloatTensor(state).to(self.device)
             a, _ = self.actor(state, deterministic, with_logprob)
         return a.cpu().numpy().flatten()
 

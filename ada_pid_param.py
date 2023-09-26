@@ -6,6 +6,7 @@ import copy
 
 import flask
 import flask_cors
+import numpy as np
 from werkzeug.serving import WSGIRequestHandler
 import threading
 import yaml_utils
@@ -25,6 +26,7 @@ cloud_configs = configs['cloud']
 drl_agent_params = drl_config['agent']
 drl_train_params = drl_config['train']
 
+flask.Flask.logger_name = "listlogger"
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 drl_app = flask.Flask(__name__)
 flask_cors.CORS(drl_app)
@@ -73,7 +75,7 @@ class EnvSimulator:
     def cal_reward(self, pid_output):
         reward = 0
         for i in pid_output:
-            reward -= i*i
+            reward -= i * i
         return reward
 
     def get_batch_state(self):
@@ -101,24 +103,24 @@ class EnvSimulator:
             time.sleep(2)
 
 
-def evaluate_policy(env, model, render, steps_per_epoch, max_action, EnvIdex):
-    scores = 0
-    turns = opt.eval_turn
-    for j in range(turns):
-        s, done, ep_r = env.reset(), False, 0
-        while not done:
-            # Take deterministic actions at test time
-            a = model.select_action(s, deterministic=True, with_logprob=False)
-            act = Action_adapter(a, max_action)  # [0,1] to [-max,max]
-            s_prime, r, done, info = env.step(act)
-            # r = Reward_adapter(r, EnvIdex)
-            ep_r += r
-            s = s_prime
-            if render:
-                env.render()
-        # print(ep_r)
-        scores += ep_r
-    return scores/turns
+# def evaluate_policy(env, model, render, steps_per_epoch, max_action, EnvIdex):
+#     scores = 0
+#     turns = opt.eval_turn
+#     for j in range(turns):
+#         s, done, ep_r = env.reset(), False, 0
+#         while not done:
+#             # Take deterministic actions at test time
+#             a = model.select_action(s, deterministic=True, with_logprob=False)
+#             act = Action_adapter(a, max_action)  # [0,1] to [-max,max]
+#             s_prime, r, done, info = env.step(act)
+#             # r = Reward_adapter(r, EnvIdex)
+#             ep_r += r
+#             s = s_prime
+#             if render:
+#                 env.render()
+#         # print(ep_r)
+#         scores += ep_r
+#     return scores/turns
 
 def train_agent():
     model = SAC_Conv_Agent(**drl_agent_params)
@@ -126,8 +128,9 @@ def train_agent():
     action_dim = drl_agent_params['action_dim']
     max_action = pid_config['parameter_bounding']
     save_interval = drl_train_params['save_interval']
-    eval_interval = None
 
+    update_every = drl_train_params['update_every']
+    update_after = drl_train_params['update_after']
 
     total_steps = drl_train_params['total_steps']
 
@@ -139,7 +142,7 @@ def train_agent():
     if drl_train_params['load_model']:
         model.load(drl_train_params['model_index'])
 
-    replay_buffer = RandomBuffer(state_dim, action_dim, max_size=int(1e6), device = drl_agent_params['device'])
+    replay_buffer = RandomBuffer(state_dim, action_dim, max_size=int(1e6), device=drl_agent_params['device'])
 
     s, done, cur_step = env.reset(), False, 0
 
@@ -147,12 +150,14 @@ def train_agent():
         cur_step += 1
         '''Interact & trian'''
 
+        s = np.asarray(s)
         a = model.select_action(s, deterministic=False, with_logprob=False)  # a∈[-1,1]
         act = Action_adapter(a, max_action)  # act∈[-max,max]
 
         s_prime, r, done, info = env.step(act)
-        dead = Done_adapter(r, done)
+        dead = Done_adapter(done, t)
         replay_buffer.add(s, a, r, s_prime, dead)
+        print('cur_step:', t + 1, 'score:', s)
         s = s_prime
 
         if t >= update_after and t % update_every == 0:
@@ -163,17 +168,16 @@ def train_agent():
         if (t + 1) % save_interval == 0:
             model.save(t + 1)
 
-        if (t + 1) % eval_interval == 0:
-            score = evaluate_policy(eval_env, model, False, steps_per_epoch, max_action, EnvIdex)
+        # if (t + 1) % eval_interval == 0:
+        #     score = evaluate_policy(eval_env, model, False, steps_per_epoch, max_action, EnvIdex)
 
+        # print('cur_step:', t + 1, 'score:', s)
 
-        print('EnvName:', EnvName[EnvIdex], 'seed:', random_seed, 'totalsteps:', t + 1, 'score:', score)
-
-
-        if done:
+        if dead:
             s, done, current_steps = env.reset(), False, 0
 
     env.close()
+
 
 @drl_app.route("/drl/parameter", methods=["GET"])
 def get_pid_parameter():

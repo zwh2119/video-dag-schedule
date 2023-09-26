@@ -19,18 +19,19 @@ if __name__ == "__main__":
     # expr_name = 'output-scatter'
     expr_name = 'tx2-cloud-raw'
 
-    test_frame_num = 10000
+    test_frame_num = 1000000
 
     # 提交请求
     # node_addr = "127.0.0.1:5001"
     # node_addr = "172.27.147.22:5001"
     # node_addr = "172.27.134.58:5001"
-    node_addr = "172.27.148.105:5001"
+    # node_addr = "172.27.148.105:5001"
     # node_addr = "114.212.81.11:5001"
+    node_addr = "114.212.81.219:5001"
 
     query_body = {
         "node_addr": node_addr,
-        "video_id": 0,
+        "video_id": 1,
         "pipeline": ["face_detection", "face_alignment"],
         "user_constraint": {
             "delay": 0.3,

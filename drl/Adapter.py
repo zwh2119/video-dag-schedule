@@ -4,8 +4,11 @@ See https://zhuanlan.zhihu.com/p/409553262 for better understanding.
 '''
 
 
-def Done_adapter(r, done):
-    return done
+def Done_adapter(done, t):
+    if t % 3000 == 0:
+        return not done
+    else:
+        return done
 
 
 def Action_adapter(a, max_action):

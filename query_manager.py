@@ -358,8 +358,8 @@ def cloud_scheduler_loop(query_manager=None):
                 )
                 runtime_info = r.json()
 
-                if 'delay' not in runtime_info:
-                    continue
+                # if 'delay' not in runtime_info:
+                #     continue
 
                 # 更新查询的运行时情境（以便用户从云端获取）
                 if runtime_info:
