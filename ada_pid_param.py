@@ -43,6 +43,7 @@ lock = threading.Lock()
 class EnvSimulator:
     def __init__(self):
         self.state_buffer = [[], [], [], []]
+        # self.state_buffer = []
 
     def reset(self):
         global kp, ki, kd
@@ -80,15 +81,16 @@ class EnvSimulator:
 
     def get_batch_state(self):
         global state_history
-        history_len = drl_agent_params['state_dim'][0]
+        history_len = drl_agent_params['state_dim'][1]
         # state = copy.deepcopy(self.state_buffer)
         state = [[], [], [], []]
-
+        # state = []
         while True:
             print(f'state buffer len: {len(state[0])}')
             if len(state[0]) >= history_len:
                 # self.state_buffer = copy.deepcopy([s[history_len:] for s in state])
                 state = copy.deepcopy([s[:history_len] for s in state])
+                # state = copy.deepcopy(state[:30])
                 return state
             with lock:
                 history = copy.deepcopy(state_history)
@@ -99,6 +101,7 @@ class EnvSimulator:
                 state[1].append(h['pid_output'])
                 state[2].append(h['runtime_info']['obj_n'])
                 state[3].append(h['runtime_info']['obj_size'])
+                # state.append([h['runtime_info']['delay'], h['pid_output'], h['runtime_info']['obj_n'], h['runtime_info']['obj_size']])
 
             time.sleep(2)
 
@@ -157,7 +160,7 @@ def train_agent():
         s_prime, r, done, info = env.step(act)
         dead = Done_adapter(done, t)
         replay_buffer.add(s, a, r, s_prime, dead)
-        print('cur_step:', t + 1, 'score:', s)
+        print('cur_step:', t + 1, 'score:', r)
         s = s_prime
 
         if t >= update_after and t % update_every == 0:
@@ -181,7 +184,7 @@ def train_agent():
 
 @drl_app.route("/drl/parameter", methods=["GET"])
 def get_pid_parameter():
-    return flask.jsonify({'kp': kp, 'ki': ki, 'kd': kd})
+    return flask.jsonify({'kp': float(kp), 'ki': float(ki), 'kd': float(kd)})
 
 
 @drl_app.route('/drl/state', methods=["POST"])

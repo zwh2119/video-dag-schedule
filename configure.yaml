@@ -107,7 +107,7 @@ pid:
 
 drl:
   agent:
-    state_dim: !!python/tuple [5, 3]
+    state_dim: !!python/tuple [4, 5]
     action_dim: 3
     gamma: 0.99
     hid_shape: !!python/tuple [256, 256]

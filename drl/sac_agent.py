@@ -87,11 +87,12 @@ class Actor_Conv(nn.Module):
                  conv_out_dim, h_acti=nn.ReLU, o_acti=nn.ReLU):
         super(Actor_Conv, self).__init__()
 
-        self.conv_net = []
-        for i in range(state_dim[1]):
-            self.conv_net.append(build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size))
+        self.conv_net = build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size)
+        # for i in range(state_dim[1]):
+        #     self.conv_net.append(build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size))
 
-        layers = [conv_out_dim] + list(hid_shape)
+        # print('conv_out:', self._get_conv_out(state_dim))
+        layers = [self._get_conv_out(state_dim)] + list(hid_shape)
         self.a_net = build_net(layers, h_acti, o_acti)
         self.mu_layer = nn.Linear(layers[-1], action_dim)
         self.log_std_layer = nn.Linear(layers[-1], action_dim)
@@ -101,13 +102,21 @@ class Actor_Conv(nn.Module):
 
     def forward(self, state, deterministic=False, with_logprob=True):
         '''Network with Enforcing Action Bounds'''
-        state_out = torch.tensor([])
-        for i in range(len(self.conv_net)):
-            if i == 0:
-                state_out = self.conv_net[i](state[i].view(1, 1, -1)).view(1, -1)
-            else:
-                state_out = torch.hstack((state_out, self.conv_net[i](state[i]).view(1, -1)))
-
+        # state_out = torch.tensor([])
+        # for i in range(len(self.conv_net)):
+        #     if i == 0:
+        #         state_out = self.conv_net[i](state[i].view(1, 1, -1)).view(1, -1)
+        #     else:
+        #         state_out = torch.hstack((state_out, self.conv_net[i](state[i]).view(1, -1)))
+        # print(self.conv_net(state).size())
+        conv_out = self.conv_net(state)
+        if len(conv_out.shape) == 2:
+            state_out = conv_out.view(1, -1)
+        elif len(conv_out.shape) == 3:
+            state_out = conv_out.view(conv_out.size(0), -1)
+        else:
+            state_out = conv_out
+        # print('state_out:', state_out.shape)
         net_out = self.a_net(state_out)
         mu = self.mu_layer(net_out)
         log_std = self.log_std_layer(net_out)
@@ -133,33 +142,56 @@ class Actor_Conv(nn.Module):
 
         return a, logp_pi_a
 
+    def _get_conv_out(self, shape):
+        o = self.conv_net(torch.zeros(1, *shape))
+        # print('conv_out:', o.view(1,-1).size())
+        # print(int(np.prod(o.view(1,-1).size())))
+        return int(np.prod(o.view(1,-1).size()))
+
 
 class Q_Critic_Conv(nn.Module):
     def __init__(self, state_dim, action_dim, hid_shape, conv_kernel_size,
                  conv_out_dim):
         super(Q_Critic_Conv, self).__init__()
 
-        self.conv_net = []
-        for i in range(state_dim[1]):
-            self.conv_net.append(build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size))
+        # self.conv_net = []
+        # for i in range(state_dim[1]):
+        #     self.conv_net.append(build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size))
 
-        layers = [conv_out_dim + action_dim] + list(hid_shape) + [1]
+        self.conv_net = build_conv1d_net(state_dim[0], conv_out_dim, conv_kernel_size)
+
+        layers = [self._get_conv_out(state_dim) + action_dim] + list(hid_shape) + [1]
 
         self.Q_1 = build_net(layers, nn.ReLU, nn.Identity)
         self.Q_2 = build_net(layers, nn.ReLU, nn.Identity)
 
     def forward(self, state, action):
-        state_out = torch.tensor([])
-        for i in range(len(self.conv_net)):
-            if i == 0:
-                state_out = self.conv_net[i](state[i]).view(1, -1)
-            else:
-                state_out = torch.hstack((state_out, self.conv_net[i](state[i]).view(1, -1)))
+        # state_out = torch.tensor([])
+        # for i in range(len(self.conv_net)):
+        #     if i == 0:
+        #         state_out = self.conv_net[i](state[i]).view(1, -1)
+        #     else:
+        #         state_out = torch.hstack((state_out, self.conv_net[i](state[i]).view(1, -1)))
+
+        conv_out = self.conv_net(state)
+        if len(conv_out.shape) == 2:
+            state_out = conv_out.view(1, -1)
+        elif len(conv_out.shape) == 3:
+            state_out = conv_out.view(conv_out.size(0), -1)
+        else:
+            state_out = conv_out
+
+        # print('state:', state_out.size())
+        # print('action:', action.size())
 
         sa = torch.cat([state_out, action], 1)
         q1 = self.Q_1(sa)
         q2 = self.Q_2(sa)
         return q1, q2
+
+    def _get_conv_out(self, shape):
+        o = self.conv_net(torch.zeros(1, *shape))
+        return int(np.prod(o.view(1, -1).size()))
 
 
 class SAC_Agent(object):
