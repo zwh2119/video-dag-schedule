@@ -19,7 +19,7 @@ if __name__ == "__main__":
     # expr_name = 'output-scatter'
     expr_name = 'tx2-cloud-raw'
 
-    test_frame_num = 1000000
+    test_frame_num = 10000
 
     # 提交请求
     # node_addr = "127.0.0.1:5001"

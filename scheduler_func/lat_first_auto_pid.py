@@ -74,10 +74,10 @@ class AutoPIDController:
         output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
         self.previous_error = error
         # print(output)
-        if output < self.min_value:
-            output = self.min_value
-        elif output > self.max_value:
-            output = self.max_value
+        # if output < self.min_value:
+        #     output = self.min_value
+        # elif output > self.max_value:
+        #     output = self.max_value
         return output
 
 
@@ -349,6 +349,7 @@ def adjust_parameters(output=0, job_uid=None,
 
         # 若此时预测精度达不到要求，可以提高fps和resolution
         if pred_acc < user_constraint["accuracy"]:
+        # if True:
             # 根据不同程度的 delay-acc trade-off，在不同的delay级别调整不同的参数
             while not tune_msg and tune_level > 0:
                 if tune_level == 2:

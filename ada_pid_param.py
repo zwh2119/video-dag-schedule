@@ -101,6 +101,7 @@ class EnvSimulator:
                 state[1].append(h['pid_output'])
                 state[2].append(h['runtime_info']['obj_n'])
                 state[3].append(h['runtime_info']['obj_size'])
+                print('pid_out: ', h['pid_output'])
                 # state.append([h['runtime_info']['delay'], h['pid_output'], h['runtime_info']['obj_n'], h['runtime_info']['obj_size']])
 
             time.sleep(2)
@@ -213,5 +214,8 @@ if __name__ == '__main__':
         pass
     elif drl_config['mode'] == 'inference':
         pass
+    elif drl_config['mode'] == 'fixed':
+        while True:
+            pass
     else:
-        raise Exception(f'illegal mode of drl: {drl_config["mode"]}, please choose in [train, test, inference]')
+        raise Exception(f'illegal mode of drl: {drl_config["mode"]}, please choose in [train, test, inference, fixed]')

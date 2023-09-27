@@ -107,7 +107,7 @@ pid:
 
 drl:
   agent:
-    state_dim: !!python/tuple [4, 5]
+    state_dim: !!python/tuple [4, 16]
     action_dim: 3
     gamma: 0.99
     hid_shape: !!python/tuple [256, 256]
@@ -128,7 +128,7 @@ drl:
     update_every: 50
     update_after: 0
   port: 6666
-  mode: 'train'
+  mode: 'fixed'
   device: 'cuda:0'
 
 
