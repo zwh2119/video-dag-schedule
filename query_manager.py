@@ -18,10 +18,13 @@ from logging_utils import root_logger
 import yaml_utils
 import logging_utils
 import scheduler_func
+import scheduler_func.lat_first_auto_pid
 
 
 configs = yaml_utils.read_yaml('configure.yaml')
 cloud_configs = configs['cloud']
+
+pid_controller = scheduler_func.lat_first_auto_pid.AutoPIDController(-3, 3)
 
 class Query():
 
@@ -321,14 +324,7 @@ def cloud_scheduler_loop(query_manager=None):
     assert query_manager
     assert isinstance(query_manager, QueryManager)
 
-    # import scheduler_func.demo_scheduler
-    # import scheduler_func.pid_scheduler
-    # import scheduler_func.pid_mogai_scheduler
-    # import scheduler_func.pid_content_aware_scheduler
-    import scheduler_func.lat_first_pid
-    import scheduler_func.lat_first_auto_pid
-
-    pid_controller = scheduler_func.lat_first_auto_pid.AutoPIDController(-3, 3)
+    global pid_controller
 
     while True:
         # 每5s调度一次
@@ -340,7 +336,8 @@ def cloud_scheduler_loop(query_manager=None):
             r = query_manager.sess.get(
                 url="http://{}/get_resource_info".format(query_manager.service_cloud_addr))
             resource_info = r.json()
-            
+
+            # TODO: 应该给所有query分配一个pid，这里的全局pid逻辑只能支持一个query
             # 访问已注册的所有job实例，获取实例中保存的结果，生成调度策略
             query_dict = query_manager.query_dict.copy()
             for qid, query in query_dict.items():
@@ -350,6 +347,9 @@ def cloud_scheduler_loop(query_manager=None):
                 node_addr = query.node_addr
                 # last_plan_result = query.get_last_plan_result()
                 user_constraint = query.user_constraint
+
+                pid_controller.set_setpoint(user_constraint['delay'])
+
                 assert node_addr
 
                 # 获取当前query的运行时情境（query_id == job_uid

@@ -191,6 +191,7 @@ def get_pid_parameter():
 @drl_app.route('/drl/state', methods=["POST"])
 def post_pid_output():
     para = flask.request.json
+    print('pid_out: ', para['pid_output'])
     with lock:
         state_history.append(para)
     return flask.jsonify({"status": 0, "msg": "post state of pid to url /drl/output"})
