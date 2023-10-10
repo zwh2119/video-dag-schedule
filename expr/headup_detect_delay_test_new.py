@@ -49,7 +49,6 @@ if __name__ == "__main__":
                   json=query_body)
 
     resp = r.json()
-    print(resp)
     query_id = resp["query_id"]
 
     filename = datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S') + \
@@ -72,11 +71,11 @@ if __name__ == "__main__":
             r = None
             try:
                 time.sleep(1)
-                print("post one query request")
+                # print("post one query request")
                 r = sess.get(
                     url="http://{}/query/get_result/{}".format(query_addr, query_id))
-                print(f'response:{r.json()}')
                 if not r.json():
+                    print('no response')
                     continue
                 resp = r.json()
 
@@ -115,11 +114,12 @@ if __name__ == "__main__":
                         'face_detection': fd_role,
                         'face_alignment': fa_role
                     }
+                    print(row)
                     if n_loop not in written_n_loop:
                         wtr.writerow(row)
                         written_n_loop[n_loop] = 1
 
-                print("written one query response, len written_n_loop={}".format(
+                print("written one query response, len written_n_loop={}\n".format(
                     len(written_n_loop.keys())))
 
                 if len(written_n_loop.keys()) > test_frame_num:
