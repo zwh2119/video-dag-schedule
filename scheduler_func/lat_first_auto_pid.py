@@ -31,18 +31,19 @@ configs = yaml_utils.read_yaml('configure.yaml')
 pid_config = configs['pid']
 drl_config = configs['drl']
 
-lastTime = time.time()
-
-
 class AutoPIDController:
     def __init__(self, min_value, max_value):
-
         self.Kp = pid_config['kp']
         self.Ki = pid_config['ki']
         self.Kd = pid_config['kd']
 
         self.min_value = min_value
         self.max_value = max_value
+
+        self.cur_time = time.time()
+        self.last_time = self.cur_time
+
+        self.setpoint = 0
 
         self.previous_error = 0
         self.integral = 0
@@ -63,21 +64,27 @@ class AutoPIDController:
         self.Ki = pid_config['ki']
         self.Kd = pid_config['kd']
 
-    def update(self, current_value, setpoint, dt):
+    def set_setpoint(self, setpoint):
+        self.setpoint = setpoint
 
+    def update(self, current_value):
         # 尝试更新pid参数
         self.get_pid_parameter()
 
-        error = setpoint - current_value
+        error = self.setpoint - current_value
+        self.cur_time = time.time()
+        dt = self.cur_time - self.last_time
         self.integral += error * dt
-        derivative = (error - self.previous_error) / dt
+        derivative = (error - self.previous_error) / dt if dt > 0 else 0
         output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
         self.previous_error = error
-        # print(output)
+
+        # ## 控制边际，防止过度调控（自动化领域需要，这里是否需要保留？）
         # if output < self.min_value:
         #     output = self.min_value
         # elif output > self.max_value:
         #     output = self.max_value
+
         return output
 
 
@@ -349,7 +356,7 @@ def adjust_parameters(output=0, job_uid=None,
 
         # 若此时预测精度达不到要求，可以提高fps和resolution
         if pred_acc < user_constraint["accuracy"]:
-        # if True:
+            # if True:
             # 根据不同程度的 delay-acc trade-off，在不同的delay级别调整不同的参数
             while not tune_msg and tune_level > 0:
                 if tune_level == 2:
@@ -473,19 +480,12 @@ def scheduler(
     video_conf = None
     flow_mapping = None
 
-    delay_ub = user_constraint["delay"]
-    delay_lb = delay_ub
-
-    # set pidController param
-    setpoint = delay_ub
-    dt = time.time() - lastTime
-
     # TODO：参照对应的边端sniffer解析运行时情境
     print('---- runtime_info in the past time slot ----')
     print('runtime_info = {}'.format(runtime_info))
 
     avg_delay = runtime_info['delay']
-    output = pid_controller.update(avg_delay, setpoint, dt)
+    output = pid_controller.update(avg_delay)
 
     sess = requests.Session()
     sess.post(url=f'http://127.0.0.1:{drl_config["port"]}/drl/state', json={
