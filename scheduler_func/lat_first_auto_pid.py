@@ -31,6 +31,7 @@ configs = yaml_utils.read_yaml('configure.yaml')
 pid_config = configs['pid']
 drl_config = configs['drl']
 
+
 class AutoPIDController:
     def __init__(self, min_value, max_value):
         self.Kp = pid_config['kp']
@@ -74,7 +75,7 @@ class AutoPIDController:
         error = self.setpoint - current_value
         self.cur_time = time.time()
         dt = self.cur_time - self.last_time
-        self.integral += error * dt
+        self.integral += error
         derivative = (error - self.previous_error) / dt if dt > 0 else 0
         output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
         self.previous_error = error
@@ -261,6 +262,19 @@ def try_expand_resource(next_flow_mapping=None, err_level=None, resource_info=No
 
     return tune_msg, next_flow_mapping
 
+def try_reduce_resource(next_flow_mapping=None, err_level=None, resource_info=None):
+    tune_msg = None
+    for taskname, task_mapping in reversed(list(next_flow_mapping.items())):
+        if task_mapping["node_role"] == "cloud":
+            print(" -------- send to cloud --------")
+            next_flow_mapping[taskname]["node_role"] = "host"
+            next_flow_mapping[taskname]["node_ip"] = list(
+                resource_info["host"].keys())[0]
+            tune_msg = "task-{} send to host".format(taskname)
+            break
+
+    return tune_msg, next_flow_mapping
+
 
 # -----------------------------------------
 # ---- TODO：根据应用情境，尝试减少计算量 ----
@@ -314,7 +328,7 @@ def try_reduce_calculation(
 
 # ----------------
 # ---- 负反馈 ----
-def adjust_parameters(output=0, job_uid=None,
+def adjust_parameters(err_level=0, job_uid=None,
                       dag=None,
                       user_constraint=None,
                       resource_info=None,
@@ -335,7 +349,7 @@ def adjust_parameters(output=0, job_uid=None,
         next_video_conf["resolution"])
     fps_index = available_fps.index(next_video_conf["fps"])
 
-    err_level = round(output)
+    # err_level = round(output)
     tune_msg = None
 
     # TODO：参照对应的边端sniffer解析运行时情境
@@ -343,49 +357,66 @@ def adjust_parameters(output=0, job_uid=None,
     print('runtime_info = {}'.format(runtime_info))
     # obj_n = runtime_info['obj_n']
 
-    if err_level > 0:
+    if err_level >= 0:
         # level > 0，时延满足要求
         # TODO：结合运行时情境（应用），可以进一步优化其他目标（精度、云端开销等）：
         #              优化目标优先级：时延 > 精度 > 云端开销
         #              若优化目标为最大化精度，在达不到要求时，可以提高fps和resolution；
         #              若优化目标为最小化云端开销，可以拉回到边端计算；
-        tune_level = err_level
-        pred_acc = get_pred_acc(conf_fps=next_video_conf['fps'], cam_fps=30.0,
-                                resolution=next_video_conf["resolution"],
-                                runtime_info=runtime_info)
 
-        # 若此时预测精度达不到要求，可以提高fps和resolution
-        if pred_acc < user_constraint["accuracy"]:
-            # if True:
-            # 根据不同程度的 delay-acc trade-off，在不同的delay级别调整不同的参数
-            while not tune_msg and tune_level > 0:
-                if tune_level == 2:
-                    if fps_index + 1 < len(available_fps):
-                        print(" -------- fps higher -------- (err_level={}, tune_msg={})".format(err_level, tune_msg))
-                        next_video_conf["fps"] = available_fps[fps_index + 1]
-                        tune_msg = "fps {} -> {}".format(available_fps[fps_index],
-                                                         available_fps[fps_index + 1])
 
-                elif tune_level == 1:
-                    if resolution_index + 1 < len(available_resolution):
-                        print(" -------- resolution higher -------- (err_level={}, tune_msg={})".format(err_level,
-                                                                                                        tune_msg))
-                        next_video_conf["resolution"] = available_resolution[resolution_index + 1]
-                        tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
-                                                                available_resolution[resolution_index + 1])
+        # tune_level = err_level
+        # pred_acc = get_pred_acc(conf_fps=next_video_conf['fps'], cam_fps=30.0,
+        #                         resolution=next_video_conf["resolution"],
+        #                         runtime_info=runtime_info)
+        #
+        # # 若此时预测精度达不到要求，可以提高fps和resolution
+        # if pred_acc < user_constraint["accuracy"]:
+        #     # if True:
+        #     # 根据不同程度的 delay-acc trade-off，在不同的delay级别调整不同的参数
+        #     while not tune_msg and tune_level > 0:
+        #         if tune_level == 2:
+        #             if fps_index + 1 < len(available_fps):
+        #                 print(" -------- fps higher -------- (err_level={}, tune_msg={})".format(err_level, tune_msg))
+        #                 next_video_conf["fps"] = available_fps[fps_index + 1]
+        #                 tune_msg = "fps {} -> {}".format(available_fps[fps_index],
+        #                                                  available_fps[fps_index + 1])
+        #
+        #         elif tune_level == 1:
+        #             if resolution_index + 1 < len(available_resolution):
+        #                 print(" -------- resolution higher -------- (err_level={}, tune_msg={})".format(err_level,
+        #                                                                                                 tune_msg))
+        #                 next_video_conf["resolution"] = available_resolution[resolution_index + 1]
+        #                 tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
+        #                                                         available_resolution[resolution_index + 1])
+        #
+        #         # 按优先级依次选择可调的配置
+        #         if not tune_msg:
+        #             tune_level -= 1
+        # else:
+        #     if 'obj_stable' in runtime_info and runtime_info['obj_stable']:
+        #         # 场景稳定，优先降低帧率
+        #         init_prior = 1
+        #         best_effort = False
+        #         tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
+        #                                                            err_level=err_level,
+        #                                                            runtime_info=runtime_info,
+        #                                                            init_prior=init_prior, best_effort=best_effort)
 
-                # 按优先级依次选择可调的配置
-                if not tune_msg:
-                    tune_level -= 1
+
+        ## new add:
+        '''
+        时延满足要求，根据超过要求的情况分级扩大分辨率、帧率、云边切分点
+        '''
+        # try to expand resolution
+        if resolution_index - 1 >= 0:
+            next_video_conf["resolution"] = available_resolution[resolution_index - 1]
         else:
-            if 'obj_stable' in runtime_info and runtime_info['obj_stable']:
-                # 场景稳定，优先降低帧率
-                init_prior = 1
-                best_effort = False
-                tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
-                                                                   err_level=err_level,
-                                                                   runtime_info=runtime_info,
-                                                                   init_prior=init_prior, best_effort=best_effort)
+            if fps_index - 1 > 0:
+                next_video_conf["fps"] = available_fps[fps_index - 1]
+            else:
+                tune_msg, next_flow_mapping = try_reduce_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
+                                    resource_info=resource_info)
 
     elif err_level < 0:
         # level < 0，时延不满足要求
@@ -397,35 +428,49 @@ def adjust_parameters(output=0, job_uid=None,
         #       结合运行时情境（应用），调整fps和resolution，比如：
         #              场景稳定则优先降低fps（对精度影响较小）
         #              物体较大则降低resolution（对精度影响较小）
-        if 'obj_stable' in runtime_info and runtime_info['obj_stable']:
-            # 场景稳定，优先降低帧率
-            init_prior = 1
-            best_effort = False
-            tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
-                                                               err_level=err_level,
-                                                               runtime_info=runtime_info,
-                                                               init_prior=init_prior, best_effort=best_effort)
-        elif 'obj_size' in runtime_info and runtime_info['obj_size'] > 500:
-            # 场景不稳定，但物体够大，优先降低分辨率
-            init_prior = 0
-            best_effort = False
-            tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
-                                                               err_level=err_level,
-                                                               runtime_info=runtime_info,
-                                                               init_prior=init_prior, best_effort=best_effort)
 
-        if not tune_msg:
-            tune_msg, next_flow_mapping = try_expand_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
-                                                              resource_info=resource_info)
 
-        if not tune_msg:
-            # 资源分配完毕，且无法根据情境降低计算量，则按收益大小降低计算量
-            init_prior = 1
-            best_effort = True
-            tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
-                                                               err_level=err_level,
-                                                               runtime_info=runtime_info,
-                                                               init_prior=init_prior, best_effort=best_effort)
+
+        # if 'obj_stable' in runtime_info and runtime_info['obj_stable']:
+        #     # 场景稳定，优先降低帧率
+        #     init_prior = 1
+        #     best_effort = False
+        #     tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
+        #                                                        err_level=err_level,
+        #                                                        runtime_info=runtime_info,
+        #                                                        init_prior=init_prior, best_effort=best_effort)
+        # elif 'obj_size' in runtime_info and runtime_info['obj_size'] > 500:
+        #     # 场景不稳定，但物体够大，优先降低分辨率
+        #     init_prior = 0
+        #     best_effort = False
+        #     tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
+        #                                                        err_level=err_level,
+        #                                                        runtime_info=runtime_info,
+        #                                                        init_prior=init_prior, best_effort=best_effort)
+        #
+        # if not tune_msg:
+        #     tune_msg, next_flow_mapping = try_expand_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
+        #                                                       resource_info=resource_info)
+        #
+        # if not tune_msg:
+        #     # 资源分配完毕，且无法根据情境降低计算量，则按收益大小降低计算量
+        #     init_prior = 1
+        #     best_effort = True
+        #     tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
+        #                                                        err_level=err_level,
+        #                                                        runtime_info=runtime_info,
+        #                                                        init_prior=init_prior, best_effort=best_effort)
+
+
+        ## new add
+        if resolution_index + 1 < len(available_resolution):
+            next_video_conf["resolution"] = available_resolution[resolution_index + 1]
+        else:
+            if fps_index + 1 < len(available_fps):
+                next_video_conf["fps"] = available_fps[fps_index + 1]
+            else:
+                tune_msg, next_flow_mapping = try_expand_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
+                                    resource_info=resource_info)
 
     prev_video_conf[job_uid] = next_video_conf
     prev_flow_mapping[job_uid] = next_flow_mapping
