@@ -17,7 +17,7 @@ video:
     type: "student in classroom"
     path: 'input/input.mp4'
     port: 5900
-    state: true
+    state: false
   - id: 1
     type: "people in meeting-room"
     path: 'input/meeting-room.mp4'
@@ -28,6 +28,11 @@ video:
     path: 'input/traffic-720p.mp4'
     port: 5902
     state: false
+  - id: 3
+    type: "static frame of classroom"
+    path: "input/static.jpg"
+    port: 5903
+    state: true
 
 service:
   - name: 'face_detection'
