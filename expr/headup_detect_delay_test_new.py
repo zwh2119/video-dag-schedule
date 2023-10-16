@@ -27,7 +27,7 @@ if __name__ == "__main__":
     # node_addr = "172.27.134.58:5001"
     # node_addr = "172.27.148.105:5001"
     # node_addr = "114.212.81.11:5001"
-    node_addr = "114.212.81.219:5001"
+    node_addr = "114.212.81.156:5001"
 
     query_body = {
         "node_addr": node_addr,

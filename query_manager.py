@@ -380,11 +380,12 @@ def cloud_scheduler_loop(query_manager=None):
                     pid_controller=pid_controller
                 )
 
-                # 更新查询策略（以便用户从云端获取）
-                query.set_plan(video_conf=conf, flow_mapping=flow_mapping)
-                # 主动post策略到对应节点（即更新对应视频流query pipeline的执行策略），让节点代理执行，不等待执行结果
-                r = query_manager.sess.post(url="http://{}/job/update_plan".format(node_addr),
-                            json={"job_uid": query_id, "video_conf": conf, "flow_mapping": flow_mapping})
+                if conf is not None and flow_mapping is not None:
+                    # 更新查询策略（以便用户从云端获取）
+                    query.set_plan(video_conf=conf, flow_mapping=flow_mapping)
+                    # 主动post策略到对应节点（即更新对应视频流query pipeline的执行策略），让节点代理执行，不等待执行结果
+                    r = query_manager.sess.post(url="http://{}/job/update_plan".format(node_addr),
+                                json={"job_uid": query_id, "video_conf": conf, "flow_mapping": flow_mapping})
         # except AssertionError as e:
         #     root_logger.error("caught assertion, msg={}".format(e), exc_info=True)
         except Exception as e:

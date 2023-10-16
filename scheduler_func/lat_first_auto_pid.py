@@ -532,6 +532,8 @@ def scheduler(
     print('---- runtime_info in the past time slot ----')
     print('runtime_info = {}'.format(runtime_info))
 
+    if 'delay' not in runtime_info:
+        return None, None
     avg_delay = runtime_info['delay']
     output = pid_controller.update(avg_delay)
 

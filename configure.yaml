@@ -1,5 +1,5 @@
 edge:
-  edge_ip: 114.212.81.219
+  edge_ip: 114.212.81.156
   port: 5000
   video_ip: 127.0.0.1
   service_port: 5500
