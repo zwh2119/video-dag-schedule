@@ -76,12 +76,15 @@ $ python3 job_manager.py 2>&1 | tee demo.log
 分布式启动：
 
 ```shell
+## (先确定configure.yaml)
 # 注意：修改service_demo.py中的"cloud"的ip为边端可访问的云端ip
 cloud$ python3 service_demo.py
 cloud$ python3 query_manager.py 
+cloud$ python3 ada_pid_param.py
 
 # 注意：service_demo.py的修改与cloud的文件保持一致
 edge$ python3 service_demo.py
+edge$ python3 camera_simulation.py
 
 # 注意：
 #   在项目根目录下新建input/目录存放数据视频————input.mp4、input1.mp4、traffic-720p.mp4
