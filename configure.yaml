@@ -109,6 +109,7 @@ pid:
   ki: 0.1
   kd: 0.01
   parameter_bounding: 1
+  action_boundary: 0.1
 
 drl:
   agent:
