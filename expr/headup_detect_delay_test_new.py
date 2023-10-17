@@ -31,10 +31,10 @@ if __name__ == "__main__":
 
     query_body = {
         "node_addr": node_addr,
-        "video_id": 3,
+        "video_id": 1,
         "pipeline": ["face_detection", "face_alignment"],
         "user_constraint": {
-            "delay": 0.3,
+            "delay": 0.2,
             "accuracy": 0.7
         }
     }
@@ -114,8 +114,9 @@ if __name__ == "__main__":
                         'face_detection': fd_role,
                         'face_alignment': fa_role
                     }
-                    print(row)
+
                     if n_loop not in written_n_loop:
+                        print(row)
                         wtr.writerow(row)
                         written_n_loop[n_loop] = 1
 
