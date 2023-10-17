@@ -36,6 +36,7 @@ class PIDController:
         print(output)
         return output
 
+
 # 给定flow_map，根据kb获取处理时延
 def get_process_delay(resolution=None, flow_map=None):
     sum_delay = 0.0
@@ -44,32 +45,34 @@ def get_process_delay(resolution=None, flow_map=None):
         pf_table = None
         if os.path.exists(pf_filename):
             pf_table = pd.read_table(pf_filename, sep='\t', header=None,
-                                    names=['resolution', 'node_role', 'delay'])
+                                     names=['resolution', 'node_role', 'delay'])
         else:
             root_logger.warning("using profile/face_detection.pf for taskname={}".format(taskname))
             pf_table = pd.read_table('profile/face_detection.pf', sep='\t', header=None,
-                                    names=['resolution', 'node_role', 'delay'])
+                                     names=['resolution', 'node_role', 'delay'])
         # root_logger.info(pf_table)
         node_role = 'cloud' if flow_map[taskname]['node_role'] == 'cloud' else 'edge'
         pf_table['node_role'] = pf_table['node_role'].astype(str)
         matched_row = pf_table.loc[
             (pf_table['node_role'] == node_role) & \
             (pf_table['resolution'] == resolution)
-        ]
+            ]
         delay = matched_row['delay'].values[0]
         root_logger.info('get profiler delay={} for taskname={} node_role={}'.format(
             delay, taskname, flow_map[taskname]['node_role']
         ))
 
         sum_delay += delay
-    
+
     root_logger.info('get sum_delay={} by knowledge base'.format(sum_delay))
 
     return sum_delay
 
+
 # TODO：给定flow_map，获取传输时延
 def get_transfer_delay(resolution=None, flow_map=None, resource_info=None):
     return 0.0
+
 
 # 获取总预估的时延
 def get_pred_delay(conf_fps=None, cam_fps=None, resolution=None, flow_map=None, resource_info=None):
@@ -85,19 +88,13 @@ def get_pred_delay(conf_fps=None, cam_fps=None, resolution=None, flow_map=None, 
 
     return total_delay
 
+
 # TODO：给定fps和resolution，结合运行时情境，获取预测时延
 def get_pred_acc(conf_fps=None, cam_fps=None, resolution=None, runtime_info=None):
     if runtime_info and 'obj_stable' in runtime_info:
         if not runtime_info['obj_stable'] and conf_fps < 20:
             return 0.6
     return 0.9
-
-
-
-
-
-
-
 
 
 # ---------------
@@ -120,14 +117,15 @@ def get_flow_map(dag=None, resource_info=None, offload_ptr=None):
                 "node_role": "cloud",
                 "node_ip": list(resource_info["cloud"].keys())[0]
             }
-    
+
     return cold_flow_mapping
 
+
 def get_cold_start_plan(
-    job_uid=None,
-    dag=None,
-    resource_info=None,
-    user_constraint=None,
+        job_uid=None,
+        dag=None,
+        resource_info=None,
+        user_constraint=None,
 ):
     assert job_uid, "should provide job_uid"
 
@@ -164,7 +162,7 @@ def get_cold_start_plan(
                 # 枚举所有策略，根据knowledge base预测时延和精度，找出符合用户约束的。
                 # 若无法同时满足，优先满足时延要求。尽量满足精度要求（不要求是最优解，所以可以提前退出）
                 flow_map = get_flow_map(dag=dag,
-                                        resource_info=resource_info, 
+                                        resource_info=resource_info,
                                         offload_ptr=offload_ptr)
                 cam_fps = 30.0
                 delay = get_pred_delay(conf_fps=fps, cam_fps=cam_fps,
@@ -173,7 +171,7 @@ def get_cold_start_plan(
                                        resource_info=resource_info)
                 acc = get_pred_acc(conf_fps=fps, cam_fps=cam_fps,
                                    resolution=resol)
-                
+
                 if delay < delay_ub:
                     # 若时延符合要求，找最符合精度要求的
                     # 防止符合要求的配置被替换
@@ -197,13 +195,6 @@ def get_cold_start_plan(
     return prev_video_conf[job_uid], prev_flow_mapping[job_uid]
 
 
-
-
-
-
-
-
-
 # -------------------------------------------
 # ---- TODO：根据资源情境，尝试分配更多资源 ----
 def try_expand_resource(next_flow_mapping=None, err_level=None, resource_info=None):
@@ -216,17 +207,18 @@ def try_expand_resource(next_flow_mapping=None, err_level=None, resource_info=No
                 resource_info["cloud"].keys())[0]
             tune_msg = "task-{} send to cloud".format(taskname)
             break
-    
+
     return tune_msg, next_flow_mapping
+
 
 # -----------------------------------------
 # ---- TODO：根据应用情境，尝试减少计算量 ----
 def try_reduce_calculation(
-    next_video_conf=None,
-    err_level=None,
-    runtime_info=None,
-    init_prior=1,
-    best_effort=False
+        next_video_conf=None,
+        err_level=None,
+        runtime_info=None,
+        init_prior=1,
+        best_effort=False
 ):
     global available_fps, available_resolution
 
@@ -247,7 +239,7 @@ def try_reduce_calculation(
                 print(" -------- fps lower -------- (init_prior={})".format(init_prior))
                 next_video_conf["fps"] = available_fps[fps_index - 1]
                 tune_msg = "fps {} -> {}".format(available_fps[fps_index],
-                                                available_fps[fps_index - 1])
+                                                 available_fps[fps_index - 1])
 
         if curr_prior == 0:
             if resolution_index > 0:
@@ -255,7 +247,7 @@ def try_reduce_calculation(
                 next_video_conf["resolution"] = available_resolution[resolution_index - 1]
                 tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
                                                         available_resolution[resolution_index - 1])
-        
+
         # 按优先级依次选择可调的配置
         if best_effort and not tune_msg:
             curr_prior = (curr_prior + 1) % total_prior
@@ -266,8 +258,8 @@ def try_reduce_calculation(
         if not best_effort:
             break
 
-    
     return tune_msg, next_video_conf
+
 
 # ----------------
 # ---- 负反馈 ----
@@ -315,7 +307,7 @@ def adjust_parameters(output=0, job_uid=None,
         pred_acc = get_pred_acc(conf_fps=next_video_conf['fps'], cam_fps=30.0,
                                 resolution=next_video_conf["resolution"],
                                 runtime_info=runtime_info)
-        
+
         # 若此时预测精度达不到要求，可以提高fps和resolution
         if pred_acc < user_constraint["accuracy"]:
             # 根据不同程度的 delay-acc trade-off，在不同的delay级别调整不同的参数
@@ -325,15 +317,16 @@ def adjust_parameters(output=0, job_uid=None,
                         print(" -------- fps higher -------- (err_level={}, tune_msg={})".format(err_level, tune_msg))
                         next_video_conf["fps"] = available_fps[fps_index + 1]
                         tune_msg = "fps {} -> {}".format(available_fps[fps_index],
-                                                        available_fps[fps_index + 1])
+                                                         available_fps[fps_index + 1])
 
                 elif tune_level == 1:
                     if resolution_index + 1 < len(available_resolution):
-                        print(" -------- resolution higher -------- (err_level={}, tune_msg={})".format(err_level, tune_msg))
+                        print(" -------- resolution higher -------- (err_level={}, tune_msg={})".format(err_level,
+                                                                                                        tune_msg))
                         next_video_conf["resolution"] = available_resolution[resolution_index + 1]
                         tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
                                                                 available_resolution[resolution_index + 1])
-                
+
                 # 按优先级依次选择可调的配置
                 if not tune_msg:
                     tune_level -= 1
@@ -342,10 +335,10 @@ def adjust_parameters(output=0, job_uid=None,
                 # 场景稳定，优先降低帧率
                 init_prior = 1
                 best_effort = False
-                tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf, 
-                                                                err_level=err_level, 
-                                                                runtime_info=runtime_info,
-                                                                init_prior=init_prior, best_effort=best_effort)
+                tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
+                                                                   err_level=err_level,
+                                                                   runtime_info=runtime_info,
+                                                                   init_prior=init_prior, best_effort=best_effort)
 
     elif err_level < 0:
         # level < 0，时延不满足要求
@@ -361,28 +354,29 @@ def adjust_parameters(output=0, job_uid=None,
             # 场景稳定，优先降低帧率
             init_prior = 1
             best_effort = False
-            tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf, 
-                                                               err_level=err_level, 
+            tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
+                                                               err_level=err_level,
                                                                runtime_info=runtime_info,
                                                                init_prior=init_prior, best_effort=best_effort)
         elif 'obj_size' in runtime_info and runtime_info['obj_size'] > 500:
             # 场景不稳定，但物体够大，优先降低分辨率
             init_prior = 0
             best_effort = False
-            tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf, 
-                                                               err_level=err_level, 
+            tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
+                                                               err_level=err_level,
                                                                runtime_info=runtime_info,
                                                                init_prior=init_prior, best_effort=best_effort)
 
         if not tune_msg:
-            tune_msg, next_flow_mapping = try_expand_resource(next_flow_mapping=next_flow_mapping, err_level=err_level, resource_info=resource_info)
+            tune_msg, next_flow_mapping = try_expand_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
+                                                              resource_info=resource_info)
 
         if not tune_msg:
             # 资源分配完毕，且无法根据情境降低计算量，则按收益大小降低计算量
             init_prior = 1
             best_effort = True
-            tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf, 
-                                                               err_level=err_level, 
+            tune_msg, next_video_conf = try_reduce_calculation(next_video_conf=next_video_conf,
+                                                               err_level=err_level,
                                                                runtime_info=runtime_info,
                                                                init_prior=init_prior, best_effort=best_effort)
 
@@ -394,27 +388,19 @@ def adjust_parameters(output=0, job_uid=None,
     print(prev_video_conf[job_uid])
     print(prev_runtime_info[job_uid])
     root_logger.info("tune_msg: {}".format(tune_msg))
-    
+
     return prev_video_conf[job_uid], prev_flow_mapping[job_uid]
-
-
-
-
-
-
-
 
 
 # -----------------
 # ---- 调度入口 ----
 def scheduler(
-    job_uid=None,
-    dag=None,
-    resource_info=None,
-    runtime_info=None,
-    user_constraint=None,
+        job_uid=None,
+        dag=None,
+        resource_info=None,
+        runtime_info=None,
+        user_constraint=None,
 ):
-
     assert job_uid, "should provide job_uid for scheduler to get prev_plan of job"
 
     root_logger.info(

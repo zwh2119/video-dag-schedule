@@ -382,16 +382,31 @@ def adjust_parameters(err_level=0, job_uid=None,
         '''
         时延满足要求，根据超过要求的情况分级扩大分辨率、帧率、云边切分点
         '''
-        if resolution_index + 1 < len(available_resolution):
-            next_video_conf["resolution"] = available_resolution[resolution_index + 1]
-        else:
-            if fps_index + 1 < len(available_fps):
-                next_video_conf["fps"] = available_fps[fps_index + 1]
-            else:
-                tune_msg, next_flow_mapping = try_expand_resource(next_flow_mapping=next_flow_mapping,
-                                                                  err_level=err_level,
-                                                                  resource_info=resource_info)
+        # if resolution_index + 1 < len(available_resolution):
+        #     next_video_conf["resolution"] = available_resolution[resolution_index + 1]
+        # else:
+        #     if fps_index + 1 < len(available_fps):
+        #         next_video_conf["fps"] = available_fps[fps_index + 1]
+        #     else:
+        #         tune_msg, next_flow_mapping = try_expand_resource(next_flow_mapping=next_flow_mapping,
+        #                                                           err_level=err_level,
+        #                                                           resource_info=resource_info)
+        while not tune_msg:
 
+            if schedule_level > 8:
+                tune_msg, next_flow_mapping = try_expand_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
+                                                                  resource_info=resource_info)
+            if not tune_msg or schedule_level > 5:
+                if resolution_index + 1 < len(available_resolution):
+                    next_video_conf["resolution"] = available_resolution[resolution_index + 1]
+                    tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
+                                                            available_resolution[resolution_index + 1])
+            if not tune_msg or schedule_level > 2:
+                if fps_index + 1 < len(available_fps):
+                    next_video_conf["fps"] = available_fps[fps_index + 1]
+                    tune_msg = "fps {} -> {}".format(available_fps[fps_index],
+                                                     available_fps[fps_index + 1])
+            schedule_level += 1
 
     elif err_level < 0:
         # level < 0，时延不满足要求
@@ -405,27 +420,44 @@ def adjust_parameters(err_level=0, job_uid=None,
         #              物体较大则降低resolution（对精度影响较小）
 
         ## new add
-        if not tune_msg:
-            tune_msg, next_flow_mapping = try_reduce_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
-                                                              resource_info=resource_info)
+        # if not tune_msg:
+        #     tune_msg, next_flow_mapping = try_reduce_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
+        #                                                       resource_info=resource_info)
+        #
+        # if not tune_msg and fps_index - 1 > 0:
+        #     next_video_conf["fps"] = available_fps[fps_index - 1]
+        #     tune_msg = "fps {} -> {}".format(available_fps[fps_index],
+        #                                      available_fps[fps_index - 1])
+        #
+        # if not tune_msg and resolution_index - 1 >= 0:
+        #     next_video_conf["resolution"] = available_resolution[resolution_index - 1]
+        #     tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
+        #                                             available_resolution[resolution_index - 1])
 
-        if not tune_msg and fps_index - 1 > 0:
-            next_video_conf["fps"] = available_fps[fps_index - 1]
-            tune_msg = "fps {} -> {}".format(available_fps[fps_index],
-                                             available_fps[fps_index - 1])
+        while not tune_msg:
+            if schedule_level > 8:
+                tune_msg, next_flow_mapping = try_reduce_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
+                                                                  resource_info=resource_info)
+            if not tune_msg or schedule_level > 5:
+                if resolution_index - 1 >= 0:
+                    next_video_conf["resolution"] = available_resolution[resolution_index - 1]
+                    tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
+                                                            available_resolution[resolution_index - 1])
+            if not tune_msg or schedule_level > 2:
+                if fps_index - 1 > 0:
+                    next_video_conf["fps"] = available_fps[fps_index - 1]
+                    tune_msg = "fps {} -> {}".format(available_fps[fps_index],
+                                                     available_fps[fps_index - 1])
 
-        if not tune_msg and resolution_index - 1 >= 0:
-            next_video_conf["resolution"] = available_resolution[resolution_index - 1]
-            tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
-                                                    available_resolution[resolution_index - 1])
+            schedule_level += 1
 
     prev_video_conf[job_uid] = next_video_conf
     prev_flow_mapping[job_uid] = next_flow_mapping
     prev_runtime_info[job_uid] = runtime_info
 
-    print(prev_flow_mapping[job_uid])
-    print(prev_video_conf[job_uid])
-    print(prev_runtime_info[job_uid])
+    # print(prev_flow_mapping[job_uid])
+    # print(prev_video_conf[job_uid])
+    # print(prev_runtime_info[job_uid])
     root_logger.info("tune_msg: {}".format(tune_msg))
 
     return prev_video_conf[job_uid], prev_flow_mapping[job_uid]
