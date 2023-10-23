@@ -34,6 +34,7 @@ flask_cors.CORS(drl_app)
 kp = pid_config['kp']
 ki = pid_config['ki']
 kd = pid_config['kd']
+clear_flag = False
 
 state_history = []
 
@@ -46,10 +47,11 @@ class EnvSimulator:
         # self.state_buffer = []
 
     def reset(self):
-        global kp, ki, kd
+        global kp, ki, kd, clear_flag
         kp = pid_config['kp']
         ki = pid_config['ki']
         kd = pid_config['kd']
+        clear_flag = True
 
         return self.get_batch_state()
 
@@ -58,6 +60,8 @@ class EnvSimulator:
         kp = action[0]
         ki = action[1]
         kd = action[2]
+
+        print(f'kp:{kp}, kd:{kd}, ki:{ki}')
 
         time.sleep(3)
 
@@ -76,7 +80,8 @@ class EnvSimulator:
     def cal_reward(self, pid_output):
         reward = 0
         for i in pid_output:
-            reward -= i * i
+            pid_modify = i*10
+            reward -= abs(pid_modify)
         return reward
 
     def get_batch_state(self):
@@ -101,7 +106,7 @@ class EnvSimulator:
                 state[1].append(h['pid_output'])
                 state[2].append(h['runtime_info']['obj_n'])
                 state[3].append(h['runtime_info']['obj_size'])
-                print('pid_out: ', h['pid_output'])
+                # print('pid_out: ', h['pid_output'])
                 # state.append([h['runtime_info']['delay'], h['pid_output'], h['runtime_info']['obj_n'], h['runtime_info']['obj_size']])
 
             time.sleep(2)
@@ -185,7 +190,14 @@ def train_agent():
 
 @drl_app.route("/drl/parameter", methods=["GET"])
 def get_pid_parameter():
-    return flask.jsonify({'kp': float(kp), 'ki': float(ki), 'kd': float(kd)})
+    global clear_flag
+    if clear_flag:
+        clear = clear_flag
+        clear_flag = False
+    else:
+        clear = clear_flag
+
+    return flask.jsonify({'kp': float(kp), 'ki': float(ki), 'kd': float(kd), 'clear': clear})
 
 
 @drl_app.route('/drl/state', methods=["POST"])

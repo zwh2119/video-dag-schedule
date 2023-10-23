@@ -22,7 +22,7 @@ video:
     type: "people in meeting-room"
     path: 'input/meeting-room.mp4'
     port: 5901
-    state: false
+    state: true
   - id: 2
     type: "traffic flow outdoor"
     path: 'input/traffic-720p.mp4'
@@ -32,7 +32,7 @@ video:
     type: "static frame of classroom"
     path: "input/static.jpg"
     port: 5903
-    state: true
+    state: false
 
 service:
   - name: 'face_detection'
@@ -109,11 +109,11 @@ pid:
   ki: 0.1
   kd: 0.01
   parameter_bounding: 1
-  action_boundary: 0.1
+  action_boundary: 0.08
 
 drl:
   agent:
-    state_dim: !!python/tuple [4, 16]
+    state_dim: !!python/tuple [4, 8]
     action_dim: 3
     gamma: 0.99
     hid_shape: !!python/tuple [256, 256]
@@ -127,14 +127,14 @@ drl:
     adaptive_alpha: true
     device: 'cuda:0'
   train:
-    total_steps: 5000000
-    save_interval: 10000
+    total_steps: 5000
+    save_interval: 1000
     load_model: False
     model_index: 0
-    update_every: 50
+    update_every: 20
     update_after: 0
   port: 6666
-  mode: 'fixed'
+  mode: 'train'
   device: 'cuda:0'
 
 

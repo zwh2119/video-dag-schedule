@@ -328,7 +328,7 @@ def cloud_scheduler_loop(query_manager=None):
 
     while True:
         # 每5s调度一次
-        time.sleep(3)
+        time.sleep(5)
 
         root_logger.info("start new schedule ...")
         try:
@@ -408,6 +408,7 @@ if __name__ == "__main__":
     video_serv_inter_port = cloud_configs['sidechan_port']
     mp.Process(target=cloud_sidechan.init_and_start_video_proc,
                args=(video_serv_inter_port,)).start()
-    time.sleep(1)
+
+    time.sleep(3)
 
     cloud_scheduler_loop(query_manager)

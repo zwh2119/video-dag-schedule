@@ -49,6 +49,12 @@ class AutoPIDController:
         self.previous_error = 0
         self.integral = 0
 
+    def clear(self):
+        self.previous_error = 0
+        self.integral = 0
+        self.cur_time = time.time()
+        self.last_time = self.cur_time
+
     def get_pid_parameter(self):
         sess = requests.Session()
         r = sess.get(url=f'http://127.0.0.1:{drl_config["port"]}/drl/parameter')
@@ -56,6 +62,8 @@ class AutoPIDController:
         self.Kp = parameter['kp']
         self.Ki = parameter['ki']
         self.Kd = parameter['kd']
+        if parameter['clear']:
+            self.clear()
 
     def check_pid_parameter(self):
         print(f'kp:{self.Kp}, ki:{self.Ki}, kd:{self.Kd}')
@@ -392,20 +400,24 @@ def adjust_parameters(err_level=0, job_uid=None,
         #                                                           err_level=err_level,
         #                                                           resource_info=resource_info)
         while not tune_msg:
-
+            root_logger.info(f'higher.. schedule_level:{schedule_level}')
             if schedule_level > 8:
                 tune_msg, next_flow_mapping = try_expand_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
                                                                   resource_info=resource_info)
-            if not tune_msg or schedule_level > 5:
-                if resolution_index + 1 < len(available_resolution):
-                    next_video_conf["resolution"] = available_resolution[resolution_index + 1]
-                    tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
-                                                            available_resolution[resolution_index + 1])
-            if not tune_msg or schedule_level > 2:
+            if not tune_msg and schedule_level > 5:
                 if fps_index + 1 < len(available_fps):
                     next_video_conf["fps"] = available_fps[fps_index + 1]
                     tune_msg = "fps {} -> {}".format(available_fps[fps_index],
                                                      available_fps[fps_index + 1])
+            if not tune_msg:
+                if resolution_index + 1 < len(available_resolution):
+                    next_video_conf["resolution"] = available_resolution[resolution_index + 1]
+                    tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
+                                                            available_resolution[resolution_index + 1])
+
+            if schedule_level > 8:
+                break
+
             schedule_level += 1
 
     elif err_level < 0:
@@ -435,19 +447,24 @@ def adjust_parameters(err_level=0, job_uid=None,
         #                                             available_resolution[resolution_index - 1])
 
         while not tune_msg:
+            root_logger.info(f'lower.. schedule_level:{schedule_level}')
             if schedule_level > 8:
                 tune_msg, next_flow_mapping = try_reduce_resource(next_flow_mapping=next_flow_mapping, err_level=err_level,
                                                                   resource_info=resource_info)
-            if not tune_msg or schedule_level > 5:
-                if resolution_index - 1 >= 0:
-                    next_video_conf["resolution"] = available_resolution[resolution_index - 1]
-                    tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
-                                                            available_resolution[resolution_index - 1])
-            if not tune_msg or schedule_level > 2:
+            if not tune_msg and schedule_level > 5:
                 if fps_index - 1 > 0:
                     next_video_conf["fps"] = available_fps[fps_index - 1]
                     tune_msg = "fps {} -> {}".format(available_fps[fps_index],
                                                      available_fps[fps_index - 1])
+
+            if not tune_msg:
+                if resolution_index - 1 >= 0:
+                    next_video_conf["resolution"] = available_resolution[resolution_index - 1]
+                    tune_msg = "resolution {} -> {}".format(available_resolution[resolution_index],
+                                                            available_resolution[resolution_index - 1])
+
+            if schedule_level > 8:
+                break
 
             schedule_level += 1
 
@@ -509,6 +526,7 @@ def scheduler(
     print('runtime_info = {}'.format(runtime_info))
 
     if 'delay' not in runtime_info:
+        root_logger.info('no delay in runtime_info')
         return None, None
     avg_delay = runtime_info['delay']
     output = pid_controller.update(avg_delay)
