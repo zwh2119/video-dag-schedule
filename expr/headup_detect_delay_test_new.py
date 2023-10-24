@@ -123,8 +123,8 @@ if __name__ == "__main__":
                 print("written one query response, len written_n_loop={}\n".format(
                     len(written_n_loop.keys())))
 
-                if len(written_n_loop.keys()) > test_frame_num:
-                    break
+                # if len(written_n_loop.keys()) > test_frame_num:
+                #     break
 
             except Exception as e:
                 if r:

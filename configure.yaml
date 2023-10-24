@@ -108,7 +108,9 @@ pid:
   kp: 1
   ki: 0.1
   kd: 0.01
-  parameter_bounding: 1
+  kp_bound: 1
+  ki_bound: 0.3
+  kd_bound: 0.1
   action_boundary: 0.08
 
 drl:

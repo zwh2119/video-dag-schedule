@@ -135,7 +135,7 @@ def train_agent():
     model = SAC_Conv_Agent(**drl_agent_params)
     state_dim = drl_agent_params['state_dim']
     action_dim = drl_agent_params['action_dim']
-    max_action = pid_config['parameter_bounding']
+    max_action = [pid_config['kp_bound'], pid_config['ki_bound'], pid_config['kd_bound']]
     save_interval = drl_train_params['save_interval']
 
     update_every = drl_train_params['update_every']
