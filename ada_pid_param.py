@@ -25,6 +25,7 @@ cloud_configs = configs['cloud']
 
 drl_agent_params = drl_config['agent']
 drl_train_params = drl_config['train']
+drl_infer_params = drl_config['inference']
 
 flask.Flask.logger_name = "listlogger"
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -80,7 +81,7 @@ class EnvSimulator:
     def cal_reward(self, pid_output):
         reward = 0
         for i in pid_output:
-            pid_modify = i*10
+            pid_modify = i * 10
             reward -= abs(pid_modify)
         return reward
 
@@ -131,7 +132,7 @@ class EnvSimulator:
 #         scores += ep_r
 #     return scores/turns
 
-def train_agent():
+def agent_train():
     model = SAC_Conv_Agent(**drl_agent_params)
     state_dim = drl_agent_params['state_dim']
     action_dim = drl_agent_params['action_dim']
@@ -188,6 +189,25 @@ def train_agent():
     env.close()
 
 
+def agent_inference():
+    model = SAC_Conv_Agent(**drl_agent_params)
+    model.load(drl_infer_params['load_model'])
+    max_action = [pid_config['kp_bound'], pid_config['ki_bound'], pid_config['kd_bound']]
+
+    env = EnvSimulator()
+
+    s = env.reset()
+
+    while True:
+        s = np.asarray(s)
+        a = model.select_action(s, deterministic=False, with_logprob=False)
+        act = Action_adapter(a, max_action)
+
+        s_prime, r, done, info = env.step(act)
+        s = s_prime
+
+
+
 @drl_app.route("/drl/parameter", methods=["GET"])
 def get_pid_parameter():
     global clear_flag
@@ -222,11 +242,11 @@ if __name__ == '__main__':
     time.sleep(1)
 
     if drl_config['mode'] == 'train':
-        train_agent()
+        agent_train()
     elif drl_config['mode'] == 'test':
         pass
     elif drl_config['mode'] == 'inference':
-        pass
+        agent_inference()
     elif drl_config['mode'] == 'fixed':
         while True:
             pass

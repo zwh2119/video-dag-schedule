@@ -135,8 +135,11 @@ drl:
     model_index: 0
     update_every: 20
     update_after: 0
+  inference:
+    load_model:
+
   port: 6666
-  mode: 'train'
+  mode: 'inference'
   device: 'cuda:0'
 
 
